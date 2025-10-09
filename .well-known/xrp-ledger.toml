@@ -1,0 +1,122 @@
+# ======================================================================
+# XRBitcoin · Official XRPL Verification and Metadata Declaration
+# Domain: xrbitcoincash.com
+# Published: 2025-10-08
+# ======================================================================
+# This file follows XRPL.org and XRPL Meta standards for discoverable
+# project metadata, wallet scraping (Xumm / Xaman), and verified domain
+# linking. Host at /.well-known/xrp-ledger.toml
+# ======================================================================
+
+
+# --------------------------------------------------------------
+# Account Verification (on-ledger domain must match this domain)
+# --------------------------------------------------------------
+[account]
+address = "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+desc    = "XRBitcoin Issuer (blackholed, fixed supply)"
+
+[[ACCOUNTS]]
+address = "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+network = "main"
+desc    = "XRBitcoin Issuer (blackholed, fixed supply)"
+
+
+# --------------------------------------------------------------
+# Meta Information — human- and machine-readable details
+# --------------------------------------------------------------
+[meta]
+name        = "XRBitcoin"
+domain      = "xrbitcoincash.com"
+website     = "https://xrbitcoincash.com/XRBitcoin/"
+logo        = "https://xrbitcoincash.com/XRBitcoin/xrbitcoin-logo.png"
+description = "XRBitcoin (XRBTC) — a Bitcoin-inspired XRPL asset developed on the XRBitcoinCash framework, blending transparency, immutability, and AI-audited security."
+
+
+# --------------------------------------------------------------
+# Social & Reference Links (wallets and explorers use these)
+# --------------------------------------------------------------
+[social]
+twitter   = "@XRbitcoincash"
+email     = "xrbitcoincash@gmail.com"
+github    = "https://github.com/XRBitcoinCash/XRBitcoin"
+xpmarket  = "https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+sologenic = "https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP"
+
+
+# --------------------------------------------------------------
+# Decentralized Identifier (optional, improves identity linking)
+# --------------------------------------------------------------
+[DID]
+id  = "did:xrpl:rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+url = "https://xrbitcoincash.com/XRBitcoin/"
+
+
+# --------------------------------------------------------------
+# Token / Currency Data — required for wallets & XRPL Meta
+# --------------------------------------------------------------
+[[CURRENCIES]]
+code             = "XRBitcoin"
+currency         = "5852626974636F696E0000000000000000000000"
+issuer           = "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+name             = "XRBitcoin"
+desc             = "XRBitcoin (XRBTC) — fixed-supply XRPL asset launched December 2021. Transparent, open-source, and secured by AI auditing."
+icon             = "https://xrbitcoincash.com/XRBitcoin/xrbitcoin-logo.png"
+network          = "main"
+display_decimals = 6
+
+
+# --------------------------------------------------------------
+# Token Links — appear in explorers and wallet link cards
+# --------------------------------------------------------------
+[[CURRENCIES.links]]
+url   = "https://xrbitcoincash.com/XRBitcoin/"
+title = "Official XRBitcoin Website"
+type  = "website"
+
+[[CURRENCIES.links]]
+url   = "https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+title = "XPMarket Token Listing"
+type  = "exchange"
+
+[[CURRENCIES.links]]
+url   = "https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP"
+title = "Sologenic DEX Market"
+type  = "exchange"
+
+[[CURRENCIES.links]]
+url   = "https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a"
+title = "XRBitcoin NFT Collection"
+type  = "nft"
+
+[[CURRENCIES.links]]
+url   = "https://xrbitcoincash.github.io/XRBitcoin/"
+title = "GitHub Pages Mirror"
+type  = "repository"
+
+[[CURRENCIES.links]]
+url   = "https://x.com/XRbitcoincash"
+title = "Official X (Twitter)"
+type  = "social"
+
+
+# --------------------------------------------------------------
+# Optional: Public Server Info (used by devs & ecosystem indexers)
+# --------------------------------------------------------------
+[[SERVERS]]
+json_rpc = "https://xrplcluster.com/"
+network  = "main"
+desc     = "Public read-only XRPL endpoint"
+
+
+# --------------------------------------------------------------
+# Project Notes (not parsed, informational only)
+# --------------------------------------------------------------
+#  Token Launch: 2021-12-07 15:47 UTC (Activated by Openbank)
+#  Total Supply: 999,967.5925449688 XRBTC (fixed, issuer blackholed)
+#  KYC Verification: Xaman Verified
+#  Trustlines: ~302
+#  License: MIT License
+#  Attribution: © 2025 XRBitcoinCash — Built on XRPL standards.
+#  “Security Center powered by ChatGPT AI — enabling transparent wallet audits.”
+# ======================================================================
