@@ -98,18 +98,30 @@
   </footer>
 
   <!-- Theme Toggle Script -->
-  <script>
-  const toggle = document.getElementById('themeToggle');
-  const root = document.documentElement;
-  const current = localStorage.getItem('theme') || 'light';
-  root.setAttribute('data-theme', current);
-  toggle.textContent = current === 'dark' ? '🌙' : '🌞';
-  toggle.addEventListener('click', () => {
-    const newTheme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    root.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    toggle.textContent = newTheme === 'dark' ? '🌙' : '🌞';
-  });
-  </script>
+<button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌞 Light</button>
+
+<script>
+const toggle = document.getElementById('themeToggle');
+const body = document.body;
+let theme = localStorage.getItem('theme') || 'light';
+body.classList.toggle('dark', theme === 'dark');
+updateButton();
+
+toggle.addEventListener('click', () => {
+  theme = theme === 'light' ? 'dark' : 'light';
+  body.classList.toggle('dark', theme === 'dark');
+  localStorage.setItem('theme', theme);
+  updateButton();
+});
+
+function updateButton() {
+  if (theme === 'dark') {
+    toggle.textContent = '🌙 Dark';
+  } else {
+    toggle.textContent = '🌞 Light';
+  }
+}
+</script>
+
 </body>
 </html>
