@@ -21,21 +21,6 @@
 <body>
   <!-- HEADER -->
   <header>
-   
-
-
-    
-    <a href="index.html"
-   class="btn ghost"
-   style="margin:16px auto;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;max-width:200px;">
-  <img src="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png"
-       alt="XRBitcoin logo"
-       style="width:24px;height:24px;border-radius:50%;">
-  Home
-</a>
-
-
-    
     <div class="container header__inner">
       <div class="brand">
         <img src="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png" alt="XRBitcoin logo" class="brand__logo">
@@ -45,17 +30,19 @@
         </div>
       </div>
 
-    <nav class="nav">
-  <a href="transparency.html" class="btn ghost">🛡️ Transparency</a>
-  <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP">Trade</a>
-  <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a">NFTs</a>
-  <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT">XPMarket</a>
-  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
-    <span class="theme-toggle__icon">🌞</span>
-    <span class="theme-toggle__label">Light</span>
-  </button>
-</nav>
-
+      <nav class="nav">
+        <a href="index.html" class="btn ghost">🏠 Home</a>
+        <a href="transparency.html" class="btn ghost">🛡️ Transparency</a>
+        <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP">Trade</a>
+        <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a">NFTs</a>
+        <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT">XPMarket</a>
+        <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+          <span class="theme-toggle__icon">🌞</span>
+          <span class="theme-toggle__label">Light</span>
+        </button>
+      </nav>
+    </div>
+  </header>
 
   <!-- MAIN CONTENT -->
   <main style="padding: 40px 20px;">
@@ -77,14 +64,10 @@
 
         <!-- Quick Questions -->
         <div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
-          <button class="btn ghost auditQuick" 
-            data-q="How was XRBitcoin created, and is it safe to connect my wallet here?">Wallet Safety</button>
-          <button class="btn ghost auditQuick" 
-            data-q="Does XRBitcoin meet XRPL standards for token issuance and transparency?">XRPL Standards</button>
-          <button class="btn ghost auditQuick" 
-            data-q="How is liquidity for XRBitcoin provided on XRPL, and is it decentralized?">Liquidity</button>
-          <button class="btn ghost auditQuick" 
-            data-q="What makes XRBitcoin unique compared to Bitcoin and other XRPL assets?">Transparency</button>
+          <button class="btn ghost auditQuick" data-q="How was XRBitcoin created, and is it safe to connect my wallet here?">Wallet Safety</button>
+          <button class="btn ghost auditQuick" data-q="Does XRBitcoin meet XRPL standards for token issuance and transparency?">XRPL Standards</button>
+          <button class="btn ghost auditQuick" data-q="How is liquidity for XRBitcoin provided on XRPL, and is it decentralized?">Liquidity</button>
+          <button class="btn ghost auditQuick" data-q="What makes XRBitcoin unique compared to Bitcoin and other XRPL assets?">Transparency</button>
         </div>
 
         <!-- Input -->
@@ -153,8 +136,6 @@
       output.appendChild(div);
       div.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     async function wakeProxy() {
       try {
