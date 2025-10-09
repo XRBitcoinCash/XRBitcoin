@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XRBitcoin — AI Control Center</title>
+
+  <!-- Icons -->
+  <link rel="icon" href="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png">
+
+  <!-- SEO -->
+  <meta name="description" content="XRBitcoin AI Control Center — ask questions about wallet safety, XRPL compliance, and project transparency.">
+  <meta name="keywords" content="XRBitcoin, XRPL, AI Control Center, ChatGPT, XRP Ledger, blockchain, token audit, safety">
+  <link rel="canonical" href="https://xrbitcoincash.github.io/XRBitcoin/control-center.html" />
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="assets/style.css?v=5">
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="container header__inner">
+      <div class="brand">
+        <img src="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png" alt="XRBitcoin logo" class="brand__logo">
+        <div>
+          <div class="brand__title">XRBitcoin</div>
+          <div class="brand__subtitle">XRbitcoin on XRPL</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP">Trade</a>
+        <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a">NFTs</a>
+        <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT">XPMarket</a>
+        <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+          <span class="theme-toggle__icon">🌞</span>
+          <span class="theme-toggle__label">Light</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main style="padding: 40px 20px;">
+    <section class="card" style="max-width: 800px; margin: 0 auto; text-align:center;">
+      <h2 style="color: var(--accent-orange);">🧠 XRBitcoin AI Control Center</h2>
+      <p class="muted" style="margin-top: 10px;">
+        Powered by <strong>ChatGPT AI</strong> — ask real-time questions about XRBitcoin, wallet safety, XRPL standards, liquidity, and transparency.<br>
+        This module connects through a secure proxy for compliance and auditing purposes.
+      </p>
+
+      <!-- Toggle Button -->
+      <button id="auditToggle" class="btn primary" style="margin-top: 16px;">🔍 Open AI Control Panel</button>
+
+      <!-- Widget -->
+      <div id="auditWidget" style="display:none; margin-top:20px; padding:20px; border:2px solid rgba(247,147,26,0.3); border-radius:12px; background:rgba(0,0,0,0.1);">
+        <div id="auditOutput" style="max-height:260px; overflow:auto; margin-bottom:12px; text-align:left;">
+          <p class="muted">🤖 Ready. Ask about XRBitcoin wallet safety, project standards, or liquidity.</p>
+        </div>
+
+        <!-- Quick Questions -->
+        <div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+          <button class="btn ghost auditQuick" 
+            data-q="How was XRBitcoin created, and is it safe to connect my wallet here?">Wallet Safety</button>
+          <button class="btn ghost auditQuick" 
+            data-q="Does XRBitcoin meet XRPL standards for token issuance and transparency?">XRPL Standards</button>
+          <button class="btn ghost auditQuick" 
+            data-q="How is liquidity for XRBitcoin provided on XRPL, and is it decentralized?">Liquidity</button>
+          <button class="btn ghost auditQuick" 
+            data-q="What makes XRBitcoin unique compared to Bitcoin and other XRPL assets?">Transparency</button>
+        </div>
+
+        <!-- Input -->
+        <div class="audit-input-wrap" style="display:flex; gap:8px; justify-content:center;">
+          <input id="auditInput" type="text" placeholder="Ask ChatGPT about XRBitcoin..." style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--muted-light);" />
+          <button id="auditSend" class="btn primary">Send</button>
+          <button id="auditVoice" class="btn ghost">🎤 Voice</button>
+        </div>
+
+        <p class="muted small" style="margin-top:8px;">🎙️ Use voice input (Chrome recommended).</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      © 2025 XRBitcoin — Built under XRPL Standards<br>
+      🔒 Security Center powered by <a href="https://openai.com/chatgpt" target="_blank">ChatGPT AI</a>
+    </div>
+  </footer>
+
+  <!-- THEME TOGGLE SCRIPT -->
+  <script>
+    const btn = document.getElementById('themeToggle');
+    const icon = btn.querySelector('.theme-toggle__icon');
+    const label = btn.querySelector('.theme-toggle__label');
+    let theme = localStorage.getItem('theme') || 'light';
+    document.body.classList.toggle('dark', theme === 'dark');
+    updateThemeButton();
+
+    btn.addEventListener('click', () => {
+      theme = (theme === 'light') ? 'dark' : 'light';
+      document.body.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem('theme', theme);
+      updateThemeButton();
+    });
+
+    function updateThemeButton() {
+      if (theme === 'dark') {
+        icon.textContent = '🌙';
+        label.textContent = 'Dark';
+      } else {
+        icon.textContent = '🌞';
+        label.textContent = 'Light';
+      }
+    }
+  </script>
+
+  <!-- AI MODULE SCRIPT -->
+  <script>
+  (() => {
+    const PROXY = "https://xrbc-frontend.onrender.com";
+    const toggle = document.getElementById("auditToggle");
+    const widget = document.getElementById("auditWidget");
+    const output = document.getElementById("auditOutput");
+    const input = document.getElementById("auditInput");
+    const send = document.getElementById("auditSend");
+    const voiceBtn = document.getElementById("auditVoice");
+    const quickBtns = document.querySelectorAll(".auditQuick");
+    let keepAliveInterval = null;
+
+    function append(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      output.appendChild(div);
+      div.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function wakeProxy() {
+      try {
+        const r = await fetch(`${PROXY}/healthz?ts=${Date.now()}`, { cache: "no-store" });
+        return r.ok;
+      } catch (_) { return false; }
+    }
+
+    toggle.addEventListener("click", async () => {
+      const show = widget.style.display === "none";
+      widget.style.display = show ? "block" : "none";
+      if (show) {
+        wakeProxy();
+        keepAliveInterval = setInterval(() => fetch(`${PROXY}/healthz?ts=${Date.now()}`).catch(()=>{}), 60000);
+      } else {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+      }
+    });
+
+    async function postChat(q) {
+      append(`<p><strong style="color:#9EB2D0">You:</strong> ${q}</p>`);
+      const spinnerId = "spinner-" + Date.now();
+      append(`<p id="${spinnerId}" style="color:#9EB2D0">⏳ Connecting to XRBitcoin AI...</p>`);
+      const awake = await wakeProxy();
+      if (!awake) {
+        document.getElementById(spinnerId)?.remove();
+        append(`<p style="color:#f88"><strong>Error:</strong> Proxy still waking up, try again.</p>`);
+        return;
+      }
+
+      try {
+        const resp = await fetch(`${PROXY}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: [{ role: "user", content: q }] }),
+        });
+        document.getElementById(spinnerId)?.remove();
+        const data = await resp.json();
+        const ans = data?.choices?.[0]?.message?.content || "No answer.";
+        append(`<p style="white-space:pre-line"><strong style="color:#00E5FF">AI:</strong> ${ans}</p>`);
+      } catch (err) {
+        document.getElementById(spinnerId)?.remove();
+        append(`<p style="color:#f88"><strong>Network error:</strong> ${err?.message || String(err)}</p>`);
+      }
+    }
+
+    send.addEventListener("click", () => {
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = "";
+      postChat(q);
+    });
+
+    input.addEventListener("keypress", e => { if (e.key === "Enter") send.click(); });
+    quickBtns.forEach(btn => btn.addEventListener("click", () => postChat(btn.dataset.q)));
+
+    if ("webkitSpeechRecognition" in window) {
+      const recog = new webkitSpeechRecognition();
+      recog.lang = "en-US";
+      recog.onresult = e => { input.value = e.results[0][0].transcript; send.click(); };
+      voiceBtn.addEventListener("click", () => { recog.start(); voiceBtn.textContent = "🎤 Listening..."; });
+      recog.onend = () => { voiceBtn.textContent = "🎤 Voice"; };
+    } else {
+      voiceBtn.style.display = "none";
+    }
+
+    window.addEventListener("beforeunload", () => clearInterval(keepAliveInterval));
+  })();
+  </script>
+</body>
+</html>
