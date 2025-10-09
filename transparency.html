@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XRBitcoin — Transparency & Safety</title>
+
+  <!-- Icons -->
+  <link rel="icon" href="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png">
+
+  <!-- SEO / Meta -->
+  <meta name="description" content="Transparency & Safety Statement for XRBitcoin and XRBitcoinCash — audited, open, and free of nefarious code.">
+  <meta name="keywords" content="XRBitcoin, XRBitcoinCash, transparency, blockchain safety, code audit, AI-assisted, XRPL">
+  <link rel="canonical" href="https://xrbitcoincash.github.io/XRBitcoin/transparency.html" />
+
+  <!-- Use your shared CSS -->
+  <link rel="stylesheet" href="assets/style.css?v=5">
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="container header__inner">
+      <div class="brand">
+        <img src="https://xrbitcoincash.github.io/XRBitcoin/xrbitcoin-logo.png" alt="XRBitcoin logo" class="brand__logo">
+        <div>
+          <div class="brand__title">XRBitcoin</div>
+          <div class="brand__subtitle">XRbitcoin on XRPL</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="index.html">Home</a>
+        <a href="transparency.html" class="active">Transparency</a>
+        <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+          <span class="theme-toggle__icon">🌞</span>
+          <span class="theme-toggle__label">Light</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main style="padding: 40px 20px;">
+    <section class="card" style="max-width: 900px; margin: 0 auto;">
+      <h2 style="color: var(--accent-orange);">🔍 Transparency & Safety Statement</h2>
+      <p class="muted" style="margin-top: 16px; line-height:1.5;">
+        This page documents the measures taken by the XRBitcoin and XRBitcoinCash projects to ensure complete clarity, security, and trustworthiness.  
+        It affirms that:
+      </p>
+
+      <ul style="margin-top: 16px; list-style: disc inside; line-height:1.5;">
+        <li>All public frontend code is open or verifiable; no hidden or off-chain code exists that alters behavior stealthily.</li>
+        <li>The AI features (chat interface, auditing, etc.) operate through a publicly known proxy and do not embed malicious logic or data harvesting.</li>
+        <li>Supply, issuer address, and transaction flows are auditable on the XRPL ledger; users may verify all claims independently via explorers (e.g. Bithomp).</li>
+        <li>Third-party dependencies (libraries, APIs) are vetted, minimal, and pinned where possible.</li>
+        <li>No private keys or secret code is stored in the frontend; interactions are forward through proxy to trusted APIs only.</li>
+        <li>All updates, audits, and security file revisions (security.txt, CSAF) are timestamped and publicly documented.</li>
+      </ul>
+
+      <p class="muted" style="margin-top: 20px;">
+        This statement is further supported by:
+      </p>
+      <ul style="line-height:1.5;">
+        <li>Auditability via XRPL explorers (e.g. Bithomp, XRPL Labs) for account and transaction transparency.</li>
+        <li>Open architecture with AI proxy endpoint logs subject to monitoring.</li>
+        <li>Community reviews, bug bounty programs (when instituted), and continuous integration of security reviews.</li>
+      </ul>
+
+      <p class="muted" style="margin-top: 24px;">
+        We encourage community members, external auditors, or curious users to raise any questions via the AI Control Center or file issues on the public GitHub repository.  
+        Our goal is to maintain a sacred space of trust in the XRPL environment — one built on clarity, not obfuscation.
+      </p>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      © 2025 XRBitcoin — Built under XRPL Standards<br>
+      🔒 Security & Transparency powered by community oversight and AI support
+    </div>
+  </footer>
+
+  <!-- Theme Toggle Script (reuse your existing toggle logic) -->
+  <script>
+    const btn = document.getElementById('themeToggle');
+    const icon = btn.querySelector('.theme-toggle__icon');
+    const label = btn.querySelector('.theme-toggle__label');
+    let theme = localStorage.getItem('theme') || 'light';
+    document.body.classList.toggle('dark', theme === 'dark');
+    updateThemeButton();
+
+    btn.addEventListener('click', () => {
+      theme = (theme === 'light') ? 'dark' : 'light';
+      document.body.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem('theme', theme);
+      updateThemeButton();
+    });
+
+    function updateThemeButton() {
+      if (theme === 'dark') {
+        icon.textContent = '🌙';
+        label.textContent = 'Dark';
+      } else {
+        icon.textContent = '🌞';
+        label.textContent = 'Light';
+      }
+    }
+  </script>
+</body>
+</html>
