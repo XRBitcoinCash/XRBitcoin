@@ -6,8 +6,8 @@
   <title>XRBitcoin — XRbitcoin on XRPL</title>
 
   <!-- Icons -->
-  <link rel="icon" href="/xrbitcoin-nft.png" type="image/png">
-  <link rel="apple-touch-icon" href="/xrbitcoin-nft.png" />
+  <link rel="icon" href="assets/xrbitcoin-logo.jpg" type="image/jpeg">
+  <link rel="apple-touch-icon" href="assets/xrbitcoin-logo.jpg" />
 
   <!-- SEO -->
   <meta name="description" content="XRBitcoin (XRbitcoin) — a fixed-supply XRPL token modeled after Bitcoin. Built under full XRPL standards with verified issuance and escrow integration." />
@@ -18,110 +18,140 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="XRBitcoin — XRbitcoin on XRPL" />
   <meta property="og:description" content="XRBitcoin (XRbitcoin) is a trustless, fixed-supply token built under XRPL standards, inspired by Bitcoin’s model and designed for escrow transparency." />
-  <meta property="og:image" content="https://xrbitcoin.github.io/xrbitcoin-nft.png" />
+  <meta property="og:image" content="assets/xrbitcoin-logo.jpg" />
   <meta property="og:url" content="https://xrbitcoin.github.io/" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="XRBitcoin — XRbitcoin on XRPL" />
   <meta name="twitter:description" content="Trade XRBitcoin on XRPL. Transparent, escrow-backed, and Bitcoin-inspired." />
-  <meta name="twitter:image" content="https://xrbitcoin.github.io/xrbitcoin-nft.png" />
+  <meta name="twitter:image" content="assets/xrbitcoin-logo.jpg" />
 
   <!-- External CSS -->
-<link rel="stylesheet" href="assets/style.css">
-
+  <link rel="stylesheet" href="assets/style.css?v=3">
 </head>
 
 <body>
+  <!-- Animated background -->
+  <div class="bg-nodes"></div>
+
+  <!-- HEADER -->
   <header>
-    <div class="brand">
-      <img src="/xrbitcoin-nft.png" alt="XRBitcoin logo">
-      <h1>XRBitcoin <span style="color:var(--muted); font-size:0.9rem;">— XRbitcoin on XRPL</span></h1>
+    <div class="container header__inner">
+      <div class="brand">
+        <img src="assets/xrbitcoin-logo.jpg" alt="XRBitcoin logo" class="brand__logo">
+        <div>
+          <div class="brand__title">XRBitcoin</div>
+          <div class="brand__subtitle">XRbitcoin on XRPL</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP">Trade</a>
+        <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a">NFTs</a>
+        <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT">XPMarket</a>
+        <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+          <span class="theme-toggle__icon">🌞</span>
+          <span class="theme-toggle__label">Light</span>
+        </button>
+      </nav>
     </div>
-    <nav>
-      <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP">Trade</a>
-      <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a">NFTs</a>
-      <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT">XPMarket</a>
-      <button id="themeToggle" title="Toggle theme">🌞</button>
-    </nav>
   </header>
 
+  <!-- HERO -->
   <main>
     <section class="hero">
-      <h2>XRBitcoin — Trustless, Fixed Supply</h2>
-      <p>
-        XRBitcoin (XRbitcoin) is a verified XRPL asset inspired by Bitcoin’s decentralized rollout. 
-        Fixed supply, blackholed issuer, and future escrow integration ensure transparency and long-term sustainability.
-      </p>
-      <div class="button-group">
-        <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP" class="btn">🚀 Trade on Sologenic</a>
-        <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT" class="btn ghost">📊 View on XPMarket</a>
-        <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a" class="btn ghost">🎨 NFT Gallery</a>
+      <div class="container hero__wrap">
+        <h1 class="hero__title">
+          XRBitcoin — <span class="accent">Trustless, Transparent, Fixed Supply</span>
+        </h1>
+        <p class="hero__lead">
+          XRBitcoin (XRbitcoin) is a verified XRPL asset inspired by Bitcoin’s decentralized rollout. 
+          Fixed supply, blackholed issuer, and future escrow integration ensure transparency and long-term sustainability.
+        </p>
+        <div class="cta">
+          <a href="https://sologenic.org/trade?market=5852626974636F696E0000000000000000000000%2BrGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT%2FXRP" class="btn btn--primary">🚀 Trade on Sologenic</a>
+          <a href="https://xpmarket.com/token/XRbitcoin-rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT" class="btn btn--ghost">📊 View on XPMarket</a>
+          <a href="https://sologenic.org/nfts/rUh5JLJNQ3NhwvHCPxgt8myXx22j1bWw1a" class="btn btn--ghost">🎨 NFT Gallery</a>
+        </div>
       </div>
     </section>
 
-    <section class="grid">
-      <div class="card about-token">
-        <h3>About XRBitcoin</h3>
-        <p><strong>Issuer:</strong></p>
-        <p class="issuer-code">rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT</p>
+    <!-- INFO GRID -->
+    <section class="section">
+      <div class="container grid">
+        <article class="card card--third">
+          <div class="card__head">
+            <div class="card__icon">₿</div>
+            <div class="card__title">About XRBitcoin</div>
+          </div>
+          <p class="card__text">XRBitcoin mirrors Bitcoin’s scarcity on the XRP Ledger — trustless, verifiable, and fast. Every token is accounted for under XRPL standards.</p>
+        </article>
 
-        <p><strong>HEX:</strong></p>
-        <p class="issuer-code">5852626974636F696E0000000000000000000000</p>
+        <article class="card card--third">
+          <div class="card__head">
+            <div class="card__icon">⚙️</div>
+            <div class="card__title">Escrow Integration</div>
+          </div>
+          <p class="card__text">Future tokens will be escrowed under XRPL’s native system — no shortcuts. This ensures decentralized, rule-based releases, echoing Bitcoin’s fair issuance model.</p>
+        </article>
 
-        <p><strong>Supply:</strong> 999,967.5925449688 (fixed, blackholed)</p>
-        <p><strong>KYC:</strong> Verified by Xaman</p>
-        <p>Activated by Openbank — December 7, 2021</p>
-      </div>
+        <article class="card card--third">
+          <div class="card__head">
+            <div class="card__icon">🛡️</div>
+            <div class="card__title">Security Center</div>
+          </div>
+          <p class="card__text">Powered by ChatGPT AI. Ask about wallet safety, XRPL compliance, and project transparency. (Module buildout in progress.)</p>
+        </article>
 
-      <div class="card">
-        <h3>Escrow Integration</h3>
-        <p>
-          Future tokens will be escrowed under XRPL’s native system — no shortcuts. 
-          This ensures decentralized, rule-based releases, echoing Bitcoin’s fair issuance model.
-        </p>
-      </div>
-
-      <div class="card">
-        <h3>Security Center</h3>
-        <p>
-          Powered by ChatGPT AI. Ask about wallet safety, XRPL compliance, and project transparency. 
-          (Module buildout in progress.)
-        </p>
+        <article class="card card--half">
+          <div class="card__head">
+            <div class="card__icon">🔗</div>
+            <div class="card__title">Issuer & HEX</div>
+          </div>
+          <p class="card__text m0"><strong>Issuer:</strong></p>
+          <code class="issuer-code mt8">rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT</code>
+          <p class="card__text mt16 m0"><strong>HEX:</strong></p>
+          <code class="issuer-code mt8">5852626974636F696E0000000000000000000000</code>
+          <p class="card__text mt16">Supply: 999,967.5925449688 (fixed, blackholed)<br>KYC: Verified by Xaman<br>Activated by Openbank — December 7, 2021</p>
+        </article>
       </div>
     </section>
   </main>
 
+  <!-- FOOTER -->
   <footer>
-    © 2025 XRBitcoin — Built under XRPL Standards<br>
-    🔒 Security Center powered by <a href="https://openai.com/chatgpt" target="_blank">ChatGPT AI</a>
+    <div class="container">
+      © 2025 XRBitcoin — Built under XRPL Standards<br>
+      🔒 Security Center powered by <a href="https://openai.com/chatgpt" target="_blank">ChatGPT AI</a>
+    </div>
   </footer>
 
-  <!-- Theme Toggle Script -->
-<button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌞 Light</button>
+  <!-- THEME TOGGLE SCRIPT -->
+  <script>
+    const btn = document.getElementById('themeToggle');
+    const icon = btn.querySelector('.theme-toggle__icon');
+    const label = btn.querySelector('.theme-toggle__label');
+    let theme = localStorage.getItem('theme') || 'light';
+    document.body.classList.toggle('dark', theme === 'dark');
+    updateThemeButton();
 
-<script>
-const toggle = document.getElementById('themeToggle');
-const body = document.body;
-let theme = localStorage.getItem('theme') || 'light';
-body.classList.toggle('dark', theme === 'dark');
-updateButton();
+    btn.addEventListener('click', () => {
+      theme = (theme === 'light') ? 'dark' : 'light';
+      document.body.classList.toggle('dark', theme === 'dark');
+      localStorage.setItem('theme', theme);
+      updateThemeButton();
+    });
 
-toggle.addEventListener('click', () => {
-  theme = theme === 'light' ? 'dark' : 'light';
-  body.classList.toggle('dark', theme === 'dark');
-  localStorage.setItem('theme', theme);
-  updateButton();
-});
-
-function updateButton() {
-  if (theme === 'dark') {
-    toggle.textContent = '🌙 Dark';
-  } else {
-    toggle.textContent = '🌞 Light';
-  }
-}
-</script>
-
+    function updateThemeButton() {
+      if (theme === 'dark') {
+        icon.textContent = '🌙';
+        label.textContent = 'Dark';
+      } else {
+        icon.textContent = '🌞';
+        label.textContent = 'Light';
+      }
+    }
+  </script>
 </body>
 </html>
