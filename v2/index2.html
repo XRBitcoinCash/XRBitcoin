@@ -95,6 +95,9 @@ const XRBITCOIN = {
   issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
 };
 
+// Neutral taker used in XRPL examples (helps with autobridging/owner-funds calc)
+const NEUTRAL_TAKER = 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh';
+
 // --- utils ---
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
@@ -130,7 +133,7 @@ async function retry(fn, {tries=3, base=300} = {}) {
         msg.includes('Proxy HTTP 502')
       );
       if (!transient || i === tries - 1) throw lastErr;
-      await sleep(base * Math.pow(2, i)); // 300ms, 600ms, 1200ms
+      await sleep(base * Math.pow(2, i)); // 300, 600, 1200 ms
     }
   }
   throw lastErr;
@@ -193,7 +196,7 @@ function sizeFromOffer(ofr, side) {
   return side === 'ask' ? amtIOU(ofr.taker_gets) : amtIOU(ofr.taker_pays);
 }
 
-// ==== Cascading order-book loader ====
+// ==== Cascading order-book loader (with taker + fallback) ====
 async function loadOrderBooks() {
   const stop1 = spinner('status1', ['Getting validated ledger…','Loading asks…','Loading bids…','Formatting rows…']);
   const stop2 = spinner('status2', ['Preparing tables…','Almost there…']);
@@ -205,37 +208,79 @@ async function loadOrderBooks() {
     );
     const lidx = led.ledger_index;
 
-    await sleep(150);
+    await sleep(120);
 
-    // 2) asks: sell XRBitcoin -> get XRP (with retry)
-    const asksResp = await retry(() =>
+    // 2) asks: sell XRBitcoin -> get XRP (1st pass WITH taker)
+    let asksResp = await retry(() =>
       rpc({
         method: 'book_offers',
         params: [{
           ledger_index: lidx,
+          taker: NEUTRAL_TAKER,
           taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
           taker_pays: { currency: 'XRP' },
-          limit: 25
+          limit: 50
         }]
       })
     );
 
-    await sleep(150);
+    await sleep(120);
 
-    // 3) bids: buy XRBitcoin -> pay XRP (with retry)
-    const bidsResp = await retry(() =>
+    // 3) bids: buy XRBitcoin -> pay XRP (1st pass WITH taker)
+    let bidsResp = await retry(() =>
       rpc({
         method: 'book_offers',
         params: [{
           ledger_index: lidx,
+          taker: NEUTRAL_TAKER,
           taker_gets: { currency: 'XRP' },
           taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-          limit: 25
+          limit: 50
         }]
       })
     );
 
-    // 4) render (filter out malformed lines)
+    // 4) Fallback pass if a side is empty:
+    const emptyAsks = !(asksResp?.result?.offers?.length > 0);
+    const emptyBids = !(bidsResp?.result?.offers?.length > 0);
+
+    if (emptyAsks || emptyBids) {
+      await sleep(120);
+
+      if (emptyAsks) {
+        // Retry asks WITHOUT taker + legacy XRP form
+        asksResp = await retry(() =>
+          rpc({
+            method: 'book_offers',
+            params: [{
+              ledger_index: lidx,
+              taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+              taker_pays: 'XRP',
+              limit: 50
+            }]
+          })
+        );
+      }
+
+      await sleep(120);
+
+      if (emptyBids) {
+        // Retry bids WITHOUT taker + legacy XRP form
+        bidsResp = await retry(() =>
+          rpc({
+            method: 'book_offers',
+            params: [{
+              ledger_index: lidx,
+              taker_gets: 'XRP',
+              taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+              limit: 50
+            }]
+          })
+        );
+      }
+    }
+
+    // 5) render (filter out malformed lines)
     const asksRes = asksResp.result || {};
     const bidsRes = bidsResp.result || {};
 
@@ -261,16 +306,29 @@ async function loadOrderBooks() {
     const bidsBody = $('bidsTbl').querySelector('tbody');
     asksBody.innerHTML = ''; bidsBody.innerHTML = '';
 
-    asks.slice(0,10).forEach(r => {
+    if (asks.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+      tr.innerHTML = `<td class="mono" colspan="2">No ask offers right now</td>`;
       asksBody.appendChild(tr);
-    });
-    bids.slice(0,10).forEach(r => {
+    } else {
+      asks.slice(0,10).forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+        asksBody.appendChild(tr);
+      });
+    }
+
+    if (bids.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+      tr.innerHTML = `<td class="mono" colspan="2">No bid offers right now</td>`;
       bidsBody.appendChild(tr);
-    });
+    } else {
+      bids.slice(0,10).forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+        bidsBody.appendChild(tr);
+      });
+    }
 
     stop1(); stop2();
     $('status1').textContent = 'Live from XRPL order books.';
@@ -323,6 +381,7 @@ function boot() {
   setInterval(loadHealth, 60000);
 }
 addEventListener('DOMContentLoaded', boot);
+
 
 
   </script>
