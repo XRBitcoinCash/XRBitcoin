@@ -3,15 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>XRBitcoin — V2 (XRPL Read‑Only)</title>
-  <link rel="icon" href="/xrbc-nft.png" />
+  <title>XRBitcoin — V2 (XRPL Read-Only)</title>
   <meta name="theme-color" content="#000428" />
   <meta name="description" content="XRBitcoin (XRPL) — live best price from order books, order book preview, and network status via proxy." />
 
   <style>
-    /* =========================
-       0) Design Tokens / Base
-       ========================= */
     :root {
       --gold-1: #ffd700;
       --gold-2: #fff8dc;
@@ -24,133 +20,52 @@
       --radius: 18px;
       --gap: 16px;
       --section: 80px;
-      --section-mobile: 56px;
     }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--ink);
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
+      color:var(--ink);
       background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-      min-height: 100dvh;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
+    header{padding:24px 16px 8px;text-align:center}
+    .brand{display:inline-flex;flex-direction:column;gap:4px;padding:10px 16px;border-radius:18px;background:rgba(255,255,255,0.06);box-shadow:0 6px 28px rgba(0,0,0,0.25);backdrop-filter:blur(6px)}
+    .brand h1{font-size:22px;line-height:1.1;margin:0}
+    .brand p{margin:2px 0 0;font-size:13px;color:var(--muted)}
 
-    /* =========================
-       1) Header / Brand + Home
-       ========================= */
-    header {
-      padding: 24px 16px 8px;
-      text-align: center;
-    }
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 16px;
-      border-radius: var(--radius);
-      background: rgba(255,255,255,0.06);
-      box-shadow: 0 6px 28px rgba(0,0,0,0.25);
-      backdrop-filter: blur(6px);
-    }
-    .brand img {
-      width: 56px; height: 56px; border-radius: 50%; box-shadow: var(--glow);
-    }
-    .brand h1 {
-      font-size: 22px; line-height: 1.1; margin: 0;
-    }
-    .brand p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    main{padding:24px 16px var(--section);max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:var(--gap)}
+    @media (min-width: 900px){ main{grid-template-columns:1.2fr 1fr} }
 
-    .home-wrap { margin-top: 12px; text-align: center; }
-    .home-btn {
-      display: inline-block;
-      background: var(--gold-1);
-      color: #1a1200;
-      text-decoration: none;
-      padding: 10px 18px;
-      border-radius: 999px;
-      font-weight: 700;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-    }
+    .card{background:var(--card-bg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,0.35)}
+    .card h2{margin:0 0 12px;font-size:18px;letter-spacing:.2px}
+    .muted{color:var(--muted);font-size:12px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .big{font-size:32px;font-weight:800;letter-spacing:.5px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
 
-    /* =========================
-       2) Layout grid
-       ========================= */
-    main {
-      padding: 24px 16px var(--section);
-      max-width: 1100px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--gap);
-    }
-    @media (min-width: 900px) {
-      main { grid-template-columns: 1.2fr 1fr; }
-    }
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.12);font-size:14px;text-align:right}
+    th:first-child,td:first-child{text-align:left}
 
-    .card {
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: var(--radius);
-      padding: 16px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-    }
-    .card h2 { margin: 0 0 12px; font-size: 18px; letter-spacing: 0.2px; }
-    .muted { color: var(--muted); font-size: 12px; }
-    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .big { font-size: 32px; font-weight: 800; letter-spacing: 0.5px; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px 6px; border-bottom: 1px dashed rgba(255,255,255,0.12); font-size: 14px; text-align: right; }
-    th:first-child, td:first-child { text-align: left; }
-
-    .status {
-      min-height: 20px;
-      font-size: 13px;
-      color: var(--gold-2);
-    }
-    .pulse {
-      position: relative;
-    }
-    .pulse::after {
-      content: ""; position: absolute; inset: -2px; border-radius: 10px; box-shadow: var(--glow); opacity: 0.25;
-    }
-
-    /* =========================
-       3) Safe CSS Patch (end)
-       ========================= */
-    @keyframes floaty { from { transform: translateY(0px); } 50% { transform: translateY(-6px);} to { transform: translateY(0px);} }
-    .brand { animation: floaty 8s ease-in-out infinite; }
+    .status{min-height:20px;font-size:13px;color:var(--gold-2)}
   </style>
 </head>
 <body>
   <header>
     <div class="brand">
-      <img src="/xrbc-nft.png" alt="XRBitcoin logo" />
-      <div>
-        <h1>XRBitcoin</h1>
-        <p>XRPL • Live Order Book & Status</p>
-      </div>
+      <h1>XRBitcoin</h1>
+      <p>XRPL • Live Order Book & Status</p>
     </div>
-    <div class="home-wrap">
-      <a class="home-btn" href="https://xrbitcoincash.com/">Home</a>
-    </div>
- </header>
- 
-  
-  <a class="home-btn" href="https://xrbitcoincash.com/XRBitcoin/">Home</a>
+  </header>
 
-  
-  <!-- Proxy selector (explicit, no placeholders) -->
+  <!-- Proxy selector -->
   <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap">
     <label class="muted" for="proxySel" style="align-self:center">Proxy:</label>
     <select id="proxySel" class="mono" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#eaf2ff">
-      <option value="https://xrbitcoin-github-io.onrender.com">xrbitcoin-github-io.onrender.com</option>
       <option value="https://xrbitcoincash-github-io.onrender.com">xrbitcoincash-github-io.onrender.com</option>
+      <option value="https://xrbitcoin-github-io.onrender.com">xrbitcoin-github-io.onrender.com</option>
     </select>
     <span class="muted" id="activeProxyNote">(active)</span>
   </div>
@@ -201,8 +116,7 @@
         <div><b>Issuer</b>: rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT</div>
         <div><b>Currency HEX</b>: 5852626974636F696E0000000000000000000000</div>
         <div><b>Network</b>: XRPL Mainnet</div>
-     <div><b>Proxy</b>: (select above)</div>
-
+        <div><b>Proxy</b>: (select above)</div>
       </div>
       <div class="status" id="status3" style="margin-top:8px"></div>
     </section>
@@ -215,71 +129,77 @@
     </section>
   </main>
 
-   <script>
-    // =============================
-    //  XRBitcoin V2 — Read-only app
-    //  - Proxy selector (persisted)
-    //  - Live order books from XRPL via proxy
-    //  - Rotating status; only real errors shown
-    // =============================
+  <script>
+    // XRBitcoin V2 — Read-only app
 
-    // Persisted proxy selection (no placeholders)
-    let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoin-github-io.onrender.com';
-    const PROXIES = [
-      'https://xrbitcoin-github-io.onrender.com',
-      'https://xrbitcoincash-github-io.onrender.com',
-    ];
+    // Persisted proxy selection; default to the working Render URL
+    let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoincash-github-io.onrender.com';
 
     // XRBitcoin IOU definition
     const XRBITCOIN = {
-      currency: '5852626974636F696E0000000000000000000000', // HEX for "XRbitcoin"
+      currency: '5852626974636F696E0000000000000000000000',
       issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
     };
 
-    // Small utils
+    // Utils
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
 
-    // Rotating status messages
+    // Spinner text rotator
     function spinner(targetId, msgs) {
       let i = 0; const el = $(targetId);
       el.textContent = msgs[0] || '';
       const iv = setInterval(() => { i = (i + 1) % msgs.length; el.textContent = msgs[i]; }, 1500);
-      return () => { clearInterval(iv); };
+      return () => clearInterval(iv);
     }
 
-    // Display the active proxy in the Meta card
+    // Show active proxy in UI
     function renderActiveProxyNote() {
       const el = $('activeProxyNote');
       if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
-      const metaProxy = document.querySelector('#metaCard .mono b')?.parentElement?.nextElementSibling;
-      // Update the "Proxy:" line in the meta card safely
       const metaProxyLine = Array.from(document.querySelectorAll('#metaCard .mono div'))
         .find(d => d.textContent.trim().startsWith('Proxy'));
-      if (metaProxyLine) {
-        metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
+      if (metaProxyLine) metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
+    }
+
+    // Robust RPC with timeout + clearer errors
+    async function rpc(body) {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 15000);
+      try {
+        const r = await fetch(PROXY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: ctrl.signal,
+          mode: 'cors'
+        });
+        if (!r.ok) {
+          const text = await r.text().catch(()=> '');
+          throw new Error(`Proxy HTTP ${r.status} ${r.statusText}${text ? ' – ' + text : ''}`);
+        }
+        const j = await r.json();
+        if (j?.result?.status === 'error' || j?.result?.error) {
+          throw new Error(`XRPL error: ${j.result.error || j.result.status}`);
+        }
+        if (j?.error) throw new Error(`XRPL error: ${j.error}`);
+        return j;
+      } catch (err) {
+        if (err?.name === 'AbortError') throw new Error('Timeout talking to proxy/XRPL (15s)');
+        if (String(err).includes('Failed to fetch')) throw new Error('Network/CORS: browser could not reach the proxy URL');
+        throw err;
+      } finally {
+        clearTimeout(tm);
       }
     }
 
-    async function rpc(body) {
-      const r = await fetch(PROXY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!r.ok) throw new Error('Proxy HTTP ' + r.status);
-      const j = await r.json();
-      if (j && j.error) throw new Error(j.error_message || j.error);
-      return j;
-    }
-
-    // Compute price in XRP/XRBitcoin from a book_offers item
+    // Price helpers
     function priceFromOffer(ofr, side) {
       const tp = ofr.taker_pays; 
       const tg = ofr.taker_gets;
       if (side === 'ask') {
-        const xrp = Number(tp) / 1_000_000;    // drops → XRP
-        const iou = Number(tg.value);          // XRBitcoin units
+        const xrp = Number(tp) / 1_000_000;   // drops -> XRP
+        const iou = Number(tg.value);         // XRBitcoin units
         return xrp / iou;
       } else {
         const xrp = Number(tg) / 1_000_000;
@@ -288,43 +208,32 @@
       }
     }
     function sizeFromOffer(ofr, side) {
-      // Size in XRBitcoin (IOU amount on that level)
       if (side === 'ask') return Number(ofr.taker_gets.value);
       return Number(ofr.taker_pays.value);
     }
 
     async function loadOrderBooks() {
-      const stop1 = spinner('status1', [
-        'Querying XRPL order books…',
-        'Finding best bid/ask…',
-        'Aggregating levels…',
-      ]);
-      const stop2 = spinner('status2', [
-        'Loading top 10 bids/asks…',
-        'Formatting rows…',
-        'Almost there…',
-      ]);
+      const stop1 = spinner('status1', ['Querying XRPL order books…','Finding best bid/ask…','Aggregating levels…']);
+      const stop2 = spinner('status2', ['Loading top 10 bids/asks…','Formatting rows…','Almost there…']);
 
       try {
-        // ASK side: sell XRBitcoin → get XRP
         const asksReq = rpc({
           method: 'book_offers',
           params: [{
-            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh', // neutral taker
+            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh',
             taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
             taker_pays: 'XRP',
-            limit: 25,
+            limit: 25
           }]
         });
 
-        // BID side: buy XRBitcoin → pay XRP
         const bidsReq = rpc({
           method: 'book_offers',
           params: [{
             taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh',
             taker_gets: 'XRP',
             taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-            limit: 25,
+            limit: 25
           }]
         });
 
@@ -340,7 +249,6 @@
           sz: sizeFromOffer(o, 'bid'),
         })).sort((a,b) => b.px - a.px);
 
-        // Bests
         const bestAsk = asks[0]?.px;
         const bestBid = bids[0]?.px;
         $('bestAsk').textContent = bestAsk ? fmt(bestAsk) : '—';
@@ -348,11 +256,9 @@
         const mid = (bestAsk && bestBid) ? (bestAsk + bestBid) / 2 : null;
         $('midPx').textContent = mid ? fmt(mid) : '—';
 
-        // Tables (top 10)
         const asksBody = $('asksTbl').querySelector('tbody');
         const bidsBody = $('bidsTbl').querySelector('tbody');
-        asksBody.innerHTML = '';
-        bidsBody.innerHTML = '';
+        asksBody.innerHTML = ''; bidsBody.innerHTML = '';
         asks.slice(0,10).forEach(r => {
           const tr = document.createElement('tr');
           tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
@@ -375,13 +281,11 @@
     }
 
     async function loadHealth() {
-      const stop = spinner('status4', [
-        'Pinging ledger…', 'Reading close time…', 'Verifying response…'
-      ]);
+      const stop = spinner('status4', ['Pinging ledger…','Reading close time…','Verifying response…']);
       try {
         const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
-        $('ledgerIndex').textContent = result.ledger_index;
-        const ct = result.ledger.close_time_human || result.closed?.ledger_time || '';
+        $('ledgerIndex').textContent = result.ledger_index ?? '—';
+        const ct = result.ledger?.close_time_human || result.closed?.ledger_time || '';
         $('ledgerClose').textContent = ct || '—';
         stop();
         $('status4').textContent = 'XRPL is responding.';
@@ -402,7 +306,6 @@
         PROXY = sel.value;
         localStorage.setItem('xrbtc_proxy', PROXY);
         renderActiveProxyNote();
-        // Refresh immediately on switch
         loadOrderBooks();
         loadHealth();
       });
@@ -413,15 +316,10 @@
       initProxySelector();
       loadOrderBooks();
       loadHealth();
-      // refresh books every 20s
       setInterval(loadOrderBooks, 20000);
-      // refresh health every 60s
       setInterval(loadHealth, 60000);
     }
     addEventListener('DOMContentLoaded', boot);
   </script>
-
 </body>
 </html>
-
-
