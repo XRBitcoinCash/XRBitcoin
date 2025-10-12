@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>XRBitcoin · XRB on XRPL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="XRBitcoin · XRB on XRPL">
+  <meta property="og:description" content="Trade XRBitcoin on the XRP Ledger. Connect your wallet and explore the XRB/XRP decentralized exchange.">
+  <meta property="og:image" content="https://xrbitcoincash.com/xrbc-nft.png"><!-- TEMP logo; see note -->
+  <meta property="og:url" content="https://xrbitcoincash.com/XRBitcoin/">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="XRBitcoin · XRB on XRPL">
+  <meta name="twitter:description" content="Decentralized XRB/XRP trading on the XRP Ledger.">
+  <meta name="twitter:image" content="https://xrbitcoincash.com/xrbc-nft.png"><!-- TEMP logo; see note -->
+
+  <!-- Favicon / icons (TEMP logo; see note) -->
+  <link rel="icon" href="/xrbc-nft.png" type="image/png">
+  <link rel="shortcut icon" href="/xrbc-nft.png" type="image/png">
+  <link rel="apple-touch-icon" href="/xrbc-nft.png">
+  <meta name="msapplication-TileImage" content="/xrbc-nft.png">
+
+  <style>
+   :root{
+    --bg:#0b0f14;--panel:#121821;--panel-2:#141b25;--text:#e7edf5;--muted:#9fb0c5;
+    --accent:#60a5fa;--accent-2:#22d3ee;--warn:#f59e0b;--err:#ef4444;--ok:#22c55e;
+    --border:#1f2937;--ring:#1d4ed8;--shadow:0 10px 30px rgba(0,0,0,.35)
+   }
+   *{box-sizing:border-box;margin:0;padding:0}
+   html,body{height:100%;background:var(--bg);color:var(--text);
+     font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
+   .container{max-width:900px;margin:0 auto;padding:20px 16px;position:relative;z-index:5}
+   .row-flex{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+   .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border);
+     border-radius:14px;padding:16px;box-shadow:var(--shadow);flex:1;min-width:260px}
+   .card.glow{border-color:var(--accent-2);box-shadow:0 0 20px rgba(34,211,238,.3)}
+   .btn{appearance:none;border:1px solid var(--border);background:linear-gradient(180deg,#0e1520,#0c131c);
+     color:var(--text);padding:10px 14px;border-radius:12px;font-weight:600;cursor:pointer;box-shadow:var(--shadow);
+     transition:transform .06s ease,border-color .2s ease,box-shadow .2s ease;min-width:120px;text-align:center}
+   .btn:hover{transform:translateY(-1px);border-color:#2a3a51}
+   .btn:active{transform:translateY(0)}
+   .btn[disabled]{opacity:.6;cursor:not-allowed}
+   .btn-primary{background:linear-gradient(180deg,rgba(37,99,235,.25),rgba(37,99,235,.15));border-color:rgba(37,99,235,.45)}
+   .btn-secondary{background:linear-gradient(180deg,rgba(34,211,238,.22),rgba(34,211,238,.12));border-color:rgba(34,211,238,.45)}
+   .status-text{font-size:13px;color:var(--muted);margin-left:12px}
+   .status-text.ok{color:var(--ok)} .status-text.err{color:var(--err)}
+   pre{background:#0c131c;border:1px solid #1c2736;border-radius:10px;padding:8px;max-height:200px;overflow:auto;font-size:12px;color:#a3e4ff}
+   .table{width:100%;border-collapse:collapse;font-size:14px}
+   .table th,.table td{padding:8px 10px;border-bottom:1px solid #1a2433}
+   .table thead th{background:#0f1722;color:#cfe2ff}
+   .brand{display:flex;align-items:center;justify-content:center;gap:12px;text-align:center;width:100%}
+   .brand img{max-height:40px}
+   .trade-card{display:grid;gap:12px;text-align:left}
+   .tabset{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+   .tab{padding:10px 12px;border:1px solid var(--border);background:linear-gradient(180deg,#0e1520,#0c131c);
+     border-radius:10px;font-weight:700;cursor:pointer;text-align:center}
+   .tab.buy{color:#22c55e}.tab.sell{color:#ef4444}
+   .tab.buy.active{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 2px rgba(34,197,94,.15) inset}
+   .tab.sell.active{border-color:rgba(239,68,68,.5);box-shadow:0 0 0 2px rgba(239,68,68,.15) inset}
+   .field{display:grid;gap:6px}.field label{font-size:13px;color:var(--muted)}
+   .field input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0c131c;color:var(--text)}
+   .field .row{display:grid;grid-template-columns:1fr auto;gap:8px}
+   .inline-hint{font-size:12px;color:var(--muted)}
+   .total-line{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px dashed var(--border);
+     border-radius:10px;background:linear-gradient(180deg,#0b1119,#0a0f15)}
+   .amount-row{display:flex;align-items:center;gap:6px}
+   .amount-row img{max-height:22px}
+   .button-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+   @media (max-width:600px){.row-flex{flex-direction:column}.btn{width:100%}.button-row{grid-template-columns:1fr}}
+   @keyframes flashText{from{opacity:1}to{opacity:.3}}
+   .status-text.connecting{animation:flashText 1.6s infinite alternate;color:#00e5ff!important;font-weight:700}
+   .refresh-indicator{display:flex;align-items:center;gap:8px;font-size:12px;color:#60a5fa}
+   .clock{width:20px;height:20px;border:2px solid #60a5fa;border-radius:50%;position:relative;animation:spinHand 10s linear infinite}
+   .clock::after{content:"";position:absolute;top:2px;left:9px;width:2px;height:8px;background:#60a5fa;transform-origin:bottom center}
+   @keyframes spinHand{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  </style>
+</head>
+
+<body>
+<header class="site-header">
+  <div class="brand" style="flex-direction: column; justify-content: center; text-align: center;">
+    <img src="/xrbc-nft.png" alt="XRBitcoin logo"><!-- TEMP logo; see note -->
+    <h1>XRBitcoin</h1>
+    <a href="https://xrbitcoincash.com/XRBitcoin/" class="btn btn-secondary" style="margin-top: 12px;">Home</a>
+  </div>
+</header>
+
+<div class="container" style="max-width:800px;margin:0 auto;padding:20px;text-align:center;">
+
+  <!-- Header -->
+  <h1 style="margin-bottom:24px;">XRBitcoin · XRB/XRP Trading & Ledger Portal</h1>
+
+  <!-- Wallet Section -->
+  <div class="card glow" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">Wallet</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0;">
+      <button id="connectWalletBtn" class="btn btn-primary glow-btn">Connect Wallet</button>
+      <button id="disconnectWalletBtn" class="btn btn-secondary glow-btn" disabled>Disconnect</button>
+    </div>
+    <p id="walletStatus" class="status-text">Status: Not connected</p>
+  </div>
+
+  <button id="setTrustlineBtn" class="btn btn-primary">Set XRBitcoin Trustline</button>
+  <div id="trustlineMsg" class="status-text" style="margin-bottom:20px;">—</div>
+
+  <!-- Ledger Info -->
+  <div class="card" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">Ledger Info</h2>
+    <button id="fetchLedgerBtn" class="btn glow-btn" style="margin-bottom:12px;">Fetch Ledger Info</button>
+    <pre id="ledgerOutput" style="text-align:left;">—</pre>
+  </div>
+
+  <!-- Trade -->
+  <div class="card" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">Trade XRBitcoin ↔ XRP</h2>
+
+    <div class="trade-card" id="tradeCard">
+      <div class="tabset">
+        <button id="buyTab" class="tab buy active" type="button">Buy XRBitcoin</button>
+        <button id="sellTab" class="tab sell" type="button">Sell XRBitcoin</button>
+      </div>
+
+      <div class="field">
+        <label for="amount">Amount (XRBitcoin)</label>
+        <div class="amount-row">
+          <img src="/xrbc-nft.png" alt="XRBitcoin logo"><!-- TEMP logo; see note -->
+          <input id="amount" type="number" step="0.000001" inputmode="decimal" placeholder="0.000000">
+        </div>
+        <div class="inline-hint">How many XRBitcoin you want to <span id="actionWord">buy</span>.</div>
+      </div>
+
+      <div class="field" id="priceField">
+        <label for="price">Price (XRP per XRBitcoin)</label>
+        <div class="row">
+          <input id="price" type="number" step="0.000001" inputmode="decimal" placeholder="e.g., 0.500000">
+          <button class="btn btn-secondary" id="suggestPriceBtn" type="button">Best Price</button>
+        </div>
+        <div class="inline-hint">Limit price. Use <em>Market Order</em> to execute at best available price.</div>
+      </div>
+
+      <div class="total-line">
+        <span>Total</span>
+        <strong id="totalXrp">0.000000 XRP</strong>
+      </div>
+
+      <div class="button-row">
+        <button id="placeOfferBtn" class="btn btn-primary" type="button">Place Limit Order</button>
+        <div class="refresh-indicator">
+          <div class="clock"></div>
+          <span class="refresh-text">Auto-refreshes every 10s</span>
+        </div>
+      </div>
+
+      <p id="tradeMsg" class="status-text">—</p>
+      <select id="side" style="display:none">
+        <option value="buy" selected>Buy</option>
+        <option value="sell">Sell</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Order Book -->
+  <div class="card" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">XRB/XRP Order Book</h2>
+    <button id="fetchPriceBtn" class="btn glow-btn" style="margin-bottom:12px;">Get Order Book</button>
+    <p id="priceOutput">—</p>
+  </div>
+
+  <!-- AMM Pool Info -->
+  <div class="card" style="margin-bottom:24px;">
+    <h2 style="margin-top:0;">XRB/XRP AMM Pool</h2>
+    <div id="ammPoolOutput">Loading pool info…</div>
+  </div>
+</div>
+
+<!-- Config -->
+<script type="application/json" id="app-config">
+{
+  "xummApiKey": "2abde023-0df1-49a2-a4dc-86d776f6318d",
+  "proxyUrl": "https://xrbitcoincash-github-io.onrender.com"
+}
+</script>
+
+<!-- Libraries -->
+<script src="https://xaman.app/assets/cdn/xumm.min.js"></script>
+<script>
+  // === Config ===
+  const cfg = JSON.parse(document.getElementById("app-config").textContent);
+  const PROXY_URL = cfg.proxyUrl;
+
+  // === XRBitcoin constants ===
+  const XRB = {
+    currency: "5852626974636F696E0000000000000000000000",
+    issuer:   "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+  };
+  const XRP_TO_DROPS = 1_000_000;
+
+  // === Proxy bridge ===
+  async function xrplRequest(payload) {
+    const res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Proxy error: " + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error("XRPL error: " + JSON.stringify(data.error));
+    return data;
+  }
+
+  const toDrops = (xrp) => Math.round(Number(xrp) * XRP_TO_DROPS).toString();
+  function requireWallet(){ if(!window.__xrbWallet) throw new Error("Connect your wallet first."); return window.__xrbWallet; }
+
+  async function getLedgerInfo(){
+    return await xrplRequest({ method: "ledger", params: [{ ledger_index: "validated" }] });
+  }
+
+  // Order book (both sides)
+  async function getXrbOrderBook(){
+    async function fetchSide(taker_gets, taker_pays, sideName){
+      const rows=[];
+      try{
+        const data = await xrplRequest({ method:"book_offers", params:[{ taker_gets, taker_pays, limit:5 }] });
+        if(data.result?.offers?.length){
+          for(const offer of data.result.offers){
+            const gets = offer.TakerGets.value ? parseFloat(offer.TakerGets.value)
+                                               : parseFloat(offer.TakerGets)/XRP_TO_DROPS;
+            const pays = offer.TakerPays.value ? parseFloat(offer.TakerPays.value)
+                                               : parseFloat(offer.TakerPays)/XRP_TO_DROPS;
+            const price = pays/gets;
+            rows.push(`<tr><td>${sideName}</td><td>${price.toFixed(6)}</td><td>${gets.toFixed(2)}</td></tr>`);
+          }
+        }else{
+          rows.push(`<tr><td>${sideName}</td><td>No offers</td><td>-</td></tr>`);
+        }
+      }catch(err){
+        rows.push(`<tr><td>${sideName}</td><td>Error</td><td>${err.message}</td></tr>`);
+      }
+      return rows;
+    }
+    const asks = await fetchSide(XRB, { currency:"XRP" }, "Ask");
+    const bids = await fetchSide({ currency:"XRP" }, XRB, "Bid");
+    return `
+      <table class="table">
+        <thead><tr><th>Side</th><th>Price (XRP/XRB)</th><th>Amount</th></tr></thead>
+        <tbody>${asks.join("")}${bids.join("")}</tbody>
+      </table>`;
+  }
+
+  (async function(){
+    // Wallet connect
+    const xumm = new Xumm(cfg.xummApiKey);
+    const btn = document.getElementById("connectWalletBtn");
+    const statusEl = document.getElementById("walletStatus");
+    const disconnectBtn = document.getElementById("disconnectWalletBtn");
+
+    let hasSavedAcct = false;
+    const savedAcct = localStorage.getItem("xrbWallet");
+    if(savedAcct){
+      hasSavedAcct = true;
+      window.__xrbWallet = savedAcct;
+      statusEl.textContent = "Connected: " + savedAcct;
+      disconnectBtn.disabled = false;
+      btn.disabled = true;
+    }
+    xumm.on("ready", () => { if(!hasSavedAcct) btn.disabled = false; });
+
+    btn.addEventListener("click", async () => {
+      try{
+        await xumm.authorize();
+        const acct = await xumm.user.account;
+        statusEl.textContent = "Connected: " + acct;
+        window.__xrbWallet = acct;
+        localStorage.setItem("xrbWallet", acct);
+        disconnectBtn.disabled = false;
+        btn.disabled = true;
+      }catch{
+        statusEl.textContent = "Failed to connect wallet";
+      }
+    });
+
+    disconnectBtn.addEventListener("click", () => {
+      window.__xrbWallet = null;
+      localStorage.removeItem("xrbWallet");
+      xumm.logout();
+      statusEl.textContent = "Status: Disconnected";
+      disconnectBtn.disabled = true;
+      btn.disabled = false;
+    });
+
+    // Ledger fetch (same rotating messages)
+    document.getElementById("fetchLedgerBtn").addEventListener("click", async () => {
+      const ledgerOut = document.getElementById("ledgerOutput");
+      let seconds = 0;
+      const messages=[
+        "Initializing secure connection…",
+        "Establishing proxy communication…",
+        "Synchronizing with XRPL Ledger…",
+        "Validating ledger data integrity…",
+        "Establishing secure connection to digital environment…",
+        "Finalizing ledger response…"
+      ];
+      ledgerOut.textContent = messages[0]; ledgerOut.style.color="#9fb0c5";
+      const interval=setInterval(()=>{seconds++;const i=Math.floor((seconds/2)%messages.length);
+        ledgerOut.textContent = messages[i]+` (${seconds}s)`;},2000);
+      try{
+        const info = await getLedgerInfo();
+        clearInterval(interval); ledgerOut.style.color="#a3e4ff";
+        ledgerOut.textContent = JSON.stringify(info,null,2);
+      }catch(err){
+        clearInterval(interval); ledgerOut.style.color="#ef4444";
+        ledgerOut.textContent = "Error: " + err.message;
+      }
+    });
+
+    // Order book
+    document.getElementById("fetchPriceBtn").addEventListener("click", async ()=>{
+      const out = document.getElementById("priceOutput");
+      out.textContent = "Loading XRB/XRP order book…";
+      try{ out.innerHTML = await getXrbOrderBook(); }
+      catch(err){ out.textContent = "Error: " + err.message; }
+    });
+
+    // === Trading UI ===
+    const placeOfferBtn=document.getElementById("placeOfferBtn");
+    const sideEl=document.getElementById("side");
+    const amountEl=document.getElementById("amount");
+    const priceEl=document.getElementById("price");
+    const tradeMsg=document.getElementById("tradeMsg");
+    const buyTab=document.getElementById("buyTab");
+    const sellTab=document.getElementById("sellTab");
+    const totalXrpEl=document.getElementById("totalXrp");
+    const suggestBtn=document.getElementById("suggestPriceBtn");
+    const actionWordEl=document.getElementById("actionWord");
+
+    function setSide(side){
+      sideEl.value=side;
+      buyTab.classList.toggle("active",side==="buy");
+      sellTab.classList.toggle("active",side==="sell");
+      if(actionWordEl) actionWordEl.textContent = side==="buy"?"buy":"sell";
+      recalcTotals();
+    }
+    function recalcTotals(){
+      const amt=Number(amountEl.value)||0;
+      const px=Number(priceEl.value)||0;
+      const total=amt*px;
+      totalXrpEl.textContent=(isFinite(total)?total:0).toFixed(6)+" XRP";
+    }
+    [amountEl,priceEl].forEach(el=>el.addEventListener("input",recalcTotals));
+
+    // Best price via AMM
+    async function fillBestPrice(){
+      const side=sideEl.value;
+      const amount=Number(amountEl.value);
+      if(!amount||amount<=0){ tradeMsg.textContent="Enter a valid XRBitcoin amount."; tradeMsg.classList.remove("ok","err"); return; }
+      tradeMsg.textContent="🔐 Connecting to XRPL for secure best price…";
+      tradeMsg.classList.remove("ok","err"); tradeMsg.classList.add("connecting");
+      tradeMsg.style.animation="flashText 1.6s infinite alternate"; tradeMsg.style.color="#00E5FF"; tradeMsg.style.fontWeight="700";
+      try{
+        const data = await xrplRequest({ method:"amm_info", params:[{ asset:{currency:"XRP"}, asset2:{currency:XRB.currency, issuer:XRB.issuer} }] });
+        const amm = data.result?.amm; if(!amm) throw new Error("No AMM found for XRB/XRP");
+        const reserveXrp = parseFloat(amm.amount)/XRP_TO_DROPS;
+        const reserveXrb = parseFloat(amm.amount2.value);
+        const feeRate = amm.trading_fee/1_000_000;
+        const k = reserveXrp*reserveXrb;
+        let effectivePrice;
+        if(side==="buy"){
+          const newReserveY=reserveXrb-amount;
+          const newReserveX=k/newReserveY;
+          let xrpIn=newReserveX-reserveXrp;
+          const fee=xrpIn*feeRate; xrpIn+=fee; effectivePrice=xrpIn/amount;
+        }else{
+          const newReserveY=reserveXrb+amount;
+          const newReserveX=k/newReserveY;
+          let xrpOut=reserveXrp-newReserveX;
+          const fee=xrpOut*feeRate; xrpOut-=fee; effectivePrice=xrpOut/amount;
+        }
+        priceEl.value=Number(effectivePrice).toFixed(6);
+        recalcTotals();
+        tradeMsg.textContent=`Best price calculated from AMM pool (${side}).`;
+        tradeMsg.classList.remove("connecting"); tradeMsg.classList.add("ok");
+        tradeMsg.style.animation="none"; tradeMsg.style.color="#22c55e"; tradeMsg.style.fontWeight="600";
+
+        const poolOut=document.getElementById("ammPoolOutput");
+        poolOut.innerHTML=`
+          <table class="table">
+            <thead><tr><th>Reserve</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>XRP</td><td>${reserveXrp.toFixed(2)} XRP</td></tr>
+              <tr><td>XRB</td><td>${reserveXrb.toFixed(2)} XRB</td></tr>
+              <tr><td>Trading Fee</td><td>${(feeRate*100).toFixed(3)}%</td></tr>
+            </tbody>
+          </table>`;
+      }catch(e){
+        tradeMsg.textContent="🔐 Still connecting securely to XRPL…";
+        tradeMsg.classList.add("connecting");
+      }
+    }
+    buyTab.addEventListener("click",()=>setSide("buy"));
+    sellTab.addEventListener("click",()=>setSide("sell"));
+    if(suggestBtn) suggestBtn.addEventListener("click", fillBestPrice);
+    setSide(sideEl.value||"buy"); recalcTotals();
+    setInterval(()=>{ const amt=Number(amountEl.value); if(amt>0){ fillBestPrice().catch(()=>{}); }},10000);
+
+    // Place offer
+    placeOfferBtn.addEventListener("click", async ()=>{
+      try{
+        const account=requireWallet();
+        const side=sideEl.value;
+        const amt=Number(amountEl.value);
+        const price=Number(priceEl.value);
+        if(!amt||!price||amt<=0||price<=0) throw new Error("Enter valid Amount & Price.");
+        let txjson;
+        if(side==="sell"){
+          const xrpTotal=price*amt;
+          txjson={ TransactionType:"OfferCreate", Account:account,
+            TakerGets:{ currency:XRB.currency, issuer:XRB.issuer, value:String(amt) },
+            TakerPays: toDrops(xrpTotal), Flags:0x00080000 };
+        }else{
+          const xrpTotal=price*amt;
+          txjson={ TransactionType:"OfferCreate", Account:account,
+            TakerGets: toDrops(xrpTotal),
+            TakerPays:{ currency:XRB.currency, issuer:XRB.issuer, value:String(amt) } };
+        }
+        tradeMsg.textContent="Open Xaman to review & sign…";
+        const { resolved } = await xumm.payload.createAndSubscribe({ txjson }, (ev)=>{
+          if(ev?.opened) tradeMsg.textContent="Payload opened in Xaman…";
+          if(ev?.signed===false) tradeMsg.textContent="Offer rejected.";
+        });
+        const result=await resolved;
+        if(!result.signed){ tradeMsg.textContent="Offer not signed."; return; }
+        tradeMsg.textContent="Offer submitted. Refreshing order book…";
+        document.getElementById("priceOutput").innerHTML = await getXrbOrderBook();
+      }catch(err){ tradeMsg.textContent="Error: "+err.message; }
+    });
+
+    // Trustline
+    const setTrustlineBtn=document.getElementById("setTrustlineBtn");
+    const trustlineMsg=document.getElementById("trustlineMsg");
+    setTrustlineBtn.addEventListener("click", async ()=>{
+      trustlineMsg.textContent="Preparing trustline request…";
+      try{
+        const account=requireWallet();
+        const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        if(isMobile){
+          const link=document.createElement("a");
+          link.href=`https://xrpl.services/?issuer=${XRB.issuer}&currency=${XRB.currency}&limit=999967.5925449688`;
+          link.textContent="👉 Tap here to set XRBitcoin Trustline";
+          link.target="_blank"; link.rel="noopener noreferrer";
+          link.style.display="inline-block"; link.style.marginTop="12px";
+          link.style.color="#60a5fa"; link.style.fontWeight="600";
+          trustlineMsg.innerHTML="Open the link below to set XRBitcoin trustline:<br/>";
+          trustlineMsg.appendChild(link); return;
+        }
+        const txjson={
+          TransactionType:"TrustSet", Account:account,
+          LimitAmount:{ currency:XRB.currency, issuer:XRB.issuer, value:"999967.5925449688" }
+        };
+        const payload=await xumm.payload.createAndSubscribe({ txjson }, (ev)=>{
+          if(ev?.opened) trustlineMsg.textContent="Payload opened in Xaman…";
+          if(ev?.signed===false) trustlineMsg.textContent="Trustline rejected.";
+        });
+        if(payload?.created?.refs?.qr_png){
+          const qr=document.createElement("img"); qr.src=payload.created.refs.qr_png;
+          qr.alt="Scan with Xaman to set XRBitcoin trustline";
+          qr.style.maxWidth="240px"; qr.style.marginTop="12px";
+          trustlineMsg.innerHTML="Scan to sign trustline:<br/>"; trustlineMsg.appendChild(qr);
+        }
+        const result=await payload.resolved;
+        if(!result.signed){ trustlineMsg.textContent="Trustline not signed."; return; }
+        trustlineMsg.textContent="✅ Trustline set successfully!";
+      }catch(err){ trustlineMsg.textContent="Error: "+err.message; }
+    });
+
+    // AMM Pool widget
+    async function updateAmmPool(){
+      try{
+        const data = await xrplRequest({ method:"amm_info",
+          params:[{ asset:{currency:"XRP"}, asset2:{currency:XRB.currency, issuer:XRB.issuer} }] });
+        const amm=data.result?.amm;
+        if(!amm){ document.getElementById("ammPoolOutput").textContent="No AMM pool exists yet."; return; }
+        const reserveXrp=(parseFloat(amm.amount)/XRP_TO_DROPS).toFixed(6);
+        const reserveXrb=parseFloat(amm.amount2.value).toFixed(6);
+        const feeRate=(amm.trading_fee/10000).toFixed(2); // %
+        document.getElementById("ammPoolOutput").innerHTML=`
+          <table class="table">
+            <thead><tr><th>Reserve XRP</th><th>Reserve XRB</th><th>Trading Fee</th></tr></thead>
+            <tbody><tr><td>${reserveXrp}</td><td>${reserveXrb}</td><td>${feeRate}%</td></tr></tbody>
+          </table>`;
+      }catch(err){
+        document.getElementById("ammPoolOutput").textContent="Error fetching AMM pool: "+err.message;
+      }
+    }
+    updateAmmPool(); setInterval(updateAmmPool,15000);
+  })();
+</script>
+</body>
+</html>
