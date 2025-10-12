@@ -87,7 +87,7 @@
   </main>
 
   <script>
-   // Default to working Render proxy (persist override in localStorage)
+// Default to working Render proxy (persist override in localStorage)
 let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoincash-github-io.onrender.com';
 
 const XRBITCOIN = {
@@ -110,10 +110,30 @@ function spinner(targetId, msgs) {
 function renderActiveProxyNote() {
   const el = $('activeProxyNote');
   if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
-  // Update the "Proxy:" line in the meta card
   const metaProxyLine = Array.from(document.querySelectorAll('#metaCard .mono div'))
     .find(d => d.textContent.trim().startsWith('Proxy'));
   if (metaProxyLine) metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
+}
+
+// --- small retry helper for cold starts / transient network errs ---
+async function retry(fn, {tries=3, base=300} = {}) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e);
+      const transient = (
+        msg.includes('Network/CORS') ||
+        msg.includes('Timeout') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('Proxy HTTP 502')
+      );
+      if (!transient || i === tries - 1) throw lastErr;
+      await sleep(base * Math.pow(2, i)); // 300ms, 600ms, 1200ms
+    }
+  }
+  throw lastErr;
 }
 
 // Robust RPC with timeout + clearer errors
@@ -143,26 +163,34 @@ async function rpc(body) {
   } finally { clearTimeout(tm); }
 }
 
-// Offer helpers
+// --- Amount helpers (handle XRP string vs object; IOU object) ---
+function amtXRP(a) {
+  if (typeof a === 'string') return Number(a) / 1_000_000;      // drops → XRP
+  if (a && typeof a === 'object' && a.currency === 'XRP' && a.value != null) return Number(a.value);
+  return NaN;
+}
+function amtIOU(a) {
+  if (a && typeof a === 'object' && a.value != null) return Number(a.value);
+  return NaN;
+}
+
+// Offer helpers (use defensive parsing)
 function priceFromOffer(ofr, side) {
-  const tp = ofr.taker_pays;
-  const tg = ofr.taker_gets;
   if (side === 'ask') {
-    // ask: taker_gets = IOU, taker_pays = XRP (drops)
-    const xrp = Number(tp) / 1_000_000;
-    const iou = Number(tg.value);
-    return xrp / iou;
+    // ask: taker_gets = IOU, taker_pays = XRP
+    const xrp = amtXRP(ofr.taker_pays);
+    const iou = amtIOU(ofr.taker_gets);
+    return (isFinite(xrp) && isFinite(iou) && iou > 0) ? (xrp / iou) : NaN;
   } else {
-    // bid: taker_gets = XRP (drops), taker_pays = IOU
-    const xrp = Number(tg) / 1_000_000;
-    const iou = Number(tp.value);
-    return xrp / iou;
+    // bid: taker_gets = XRP, taker_pays = IOU
+    const xrp = amtXRP(ofr.taker_gets);
+    const iou = amtIOU(ofr.taker_pays);
+    return (isFinite(xrp) && isFinite(iou) && iou > 0) ? (xrp / iou) : NaN;
   }
 }
 function sizeFromOffer(ofr, side) {
-  // size displayed in XRBitcoin units
-  if (side === 'ask') return Number(ofr.taker_gets.value);
-  return Number(ofr.taker_pays.value);
+  // display size in XRBitcoin units (IOU amount)
+  return side === 'ask' ? amtIOU(ofr.taker_gets) : amtIOU(ofr.taker_pays);
 }
 
 // ==== Cascading order-book loader ====
@@ -171,50 +199,55 @@ async function loadOrderBooks() {
   const stop2 = spinner('status2', ['Preparing tables…','Almost there…']);
 
   try {
-    // 1) one validated ledger to keep snapshot consistent
-    const { result: led } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
+    // 1) one validated ledger to keep snapshot consistent (with retry)
+    const { result: led } = await retry(() =>
+      rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] })
+    );
     const lidx = led.ledger_index;
 
-    // small pause to be gentle with upstream
     await sleep(150);
 
-    // 2) asks: sell XRBitcoin -> get XRP
-    const asksResp = await rpc({
-      method: 'book_offers',
-      params: [{
-        ledger_index: lidx,
-        taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-        taker_pays: { currency: 'XRP' },
-        limit: 25
-      }]
-    });
+    // 2) asks: sell XRBitcoin -> get XRP (with retry)
+    const asksResp = await retry(() =>
+      rpc({
+        method: 'book_offers',
+        params: [{
+          ledger_index: lidx,
+          taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+          taker_pays: { currency: 'XRP' },
+          limit: 25
+        }]
+      })
+    );
 
     await sleep(150);
 
-    // 3) bids: buy XRBitcoin -> pay XRP
-    const bidsResp = await rpc({
-      method: 'book_offers',
-      params: [{
-        ledger_index: lidx,
-        taker_gets: { currency: 'XRP' },
-        taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-        limit: 25
-      }]
-    });
+    // 3) bids: buy XRBitcoin -> pay XRP (with retry)
+    const bidsResp = await retry(() =>
+      rpc({
+        method: 'book_offers',
+        params: [{
+          ledger_index: lidx,
+          taker_gets: { currency: 'XRP' },
+          taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+          limit: 25
+        }]
+      })
+    );
 
-    // 4) render
+    // 4) render (filter out malformed lines)
     const asksRes = asksResp.result || {};
     const bidsRes = bidsResp.result || {};
 
-    const asks = (asksRes.offers || []).map(o => ({
-      px: priceFromOffer(o, 'ask'),
-      sz: sizeFromOffer(o, 'ask'),
-    })).sort((a,b) => a.px - b.px);
+    const asks = (asksRes.offers || [])
+      .map(o => ({ px: priceFromOffer(o, 'ask'), sz: sizeFromOffer(o, 'ask') }))
+      .filter(r => Number.isFinite(r.px) && Number.isFinite(r.sz))
+      .sort((a,b) => a.px - b.px);
 
-    const bids = (bidsRes.offers || []).map(o => ({
-      px: priceFromOffer(o, 'bid'),
-      sz: sizeFromOffer(o, 'bid'),
-    })).sort((a,b) => b.px - a.px);
+    const bids = (bidsRes.offers || [])
+      .map(o => ({ px: priceFromOffer(o, 'bid'), sz: sizeFromOffer(o, 'bid') }))
+      .filter(r => Number.isFinite(r.px) && Number.isFinite(r.sz))
+      .sort((a,b) => b.px - a.px);
 
     const bestAsk = asks[0]?.px;
     const bestBid = bids[0]?.px;
@@ -252,7 +285,9 @@ async function loadOrderBooks() {
 async function loadHealth() {
   const stop = spinner('status4', ['Pinging ledger…','Reading close time…','Verifying response…']);
   try {
-    const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
+    const { result } = await retry(() =>
+      rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] })
+    );
     $('ledgerIndex').textContent = result.ledger_index ?? '—';
     const ct = result.ledger?.close_time_human || result.closed?.ledger_time || '';
     $('ledgerClose').textContent = ct || '—';
@@ -288,6 +323,7 @@ function boot() {
   setInterval(loadHealth, 60000);
 }
 addEventListener('DOMContentLoaded', boot);
+
 
   </script>
 </body>
