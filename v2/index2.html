@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XRBitcoin — V2 (XRPL Read‑Only)</title>
+  <link rel="icon" href="/xrbc-nft.png" />
+  <meta name="theme-color" content="#000428" />
+  <meta name="description" content="XRBitcoin (XRPL) — live best price from order books, order book preview, and network status via proxy." />
+
+  <style>
+    /* =========================
+       0) Design Tokens / Base
+       ========================= */
+    :root {
+      --gold-1: #ffd700;
+      --gold-2: #fff8dc;
+      --blue-1: #000428;
+      --blue-2: #004e92;
+      --ink: #eaf2ff;
+      --muted: #b8c7e0;
+      --card-bg: rgba(0, 0, 0, 0.55);
+      --glow: 0 0 24px rgba(255, 255, 255, 0.55);
+      --radius: 18px;
+      --gap: 16px;
+      --section: 80px;
+      --section-mobile: 56px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* =========================
+       1) Header / Brand + Home
+       ========================= */
+    header {
+      padding: 24px 16px 8px;
+      text-align: center;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.25);
+      backdrop-filter: blur(6px);
+    }
+    .brand img {
+      width: 56px; height: 56px; border-radius: 50%; box-shadow: var(--glow);
+    }
+    .brand h1 {
+      font-size: 22px; line-height: 1.1; margin: 0;
+    }
+    .brand p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+    .home-wrap { margin-top: 12px; text-align: center; }
+    .home-btn {
+      display: inline-block;
+      background: var(--gold-1);
+      color: #1a1200;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    }
+
+    /* =========================
+       2) Layout grid
+       ========================= */
+    main {
+      padding: 24px 16px var(--section);
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+    @media (min-width: 900px) {
+      main { grid-template-columns: 1.2fr 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 18px; letter-spacing: 0.2px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .big { font-size: 32px; font-weight: 800; letter-spacing: 0.5px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 6px; border-bottom: 1px dashed rgba(255,255,255,0.12); font-size: 14px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+
+    .status {
+      min-height: 20px;
+      font-size: 13px;
+      color: var(--gold-2);
+    }
+    .pulse {
+      position: relative;
+    }
+    .pulse::after {
+      content: ""; position: absolute; inset: -2px; border-radius: 10px; box-shadow: var(--glow); opacity: 0.25;
+    }
+
+    /* =========================
+       3) Safe CSS Patch (end)
+       ========================= */
+    @keyframes floaty { from { transform: translateY(0px); } 50% { transform: translateY(-6px);} to { transform: translateY(0px);} }
+    .brand { animation: floaty 8s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="/xrbc-nft.png" alt="XRBitcoin logo" />
+      <div>
+        <h1>XRBitcoin</h1>
+        <p>XRPL • Live Order Book & Status</p>
+      </div>
+    </div>
+    <div class="home-wrap">
+      <a class="home-btn" href="https://xrbitcoincash.com/">Home</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Price + Orderbook -->
+    <section class="card" id="priceCard">
+      <h2>Best Price <span class="muted">(XRBitcoin ↔ XRP)</span></h2>
+      <div class="row">
+        <div>
+          <div class="muted">Best Ask (sell XRBitcoin for XRP)</div>
+          <div class="big mono" id="bestAsk">—</div>
+        </div>
+        <div>
+          <div class="muted">Best Bid (buy XRBitcoin with XRP)</div>
+          <div class="big mono" id="bestBid">—</div>
+        </div>
+      </div>
+      <div class="muted" style="margin-top:8px">Mid (indicative): <span class="mono" id="midPx">—</span> XRP / XRBitcoin</div>
+      <div class="status" id="status1"></div>
+    </section>
+
+    <section class="card" id="orderbookCard">
+      <h2>Order Book Preview <span class="muted">(Top 10 per side)</span></h2>
+      <div class="row" style="gap:18px; align-items:flex-start">
+        <div style="flex:1">
+          <div class="muted" style="margin-bottom:6px">Asks (price in XRP per XRBitcoin)</div>
+          <table id="asksTbl">
+            <thead><tr><th>Price</th><th>Size</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div style="flex:1">
+          <div class="muted" style="margin-bottom:6px">Bids (price in XRP per XRBitcoin)</div>
+          <table id="bidsTbl">
+            <thead><tr><th>Price</th><th>Size</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="status" id="status2"></div>
+    </section>
+
+    <!-- Right Column: Network / Token Meta -->
+    <section class="card" id="metaCard">
+      <h2>Token • XRBitcoin</h2>
+      <div class="mono" style="font-size:13px; line-height:1.5">
+        <div><b>Issuer</b>: rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT</div>
+        <div><b>Currency HEX</b>: 5852626974636F696E0000000000000000000000</div>
+        <div><b>Network</b>: XRPL Mainnet</div>
+        <div><b>Proxy</b>: https://xrbitcoincash-github-io.onrender.com</div>
+      </div>
+      <div class="status" id="status3" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card" id="healthCard">
+      <h2>XRPL Health</h2>
+      <div class="row"><div class="muted">Last ledger index</div><div class="mono" id="ledgerIndex">—</div></div>
+      <div class="row"><div class="muted">Close time (UTC)</div><div class="mono" id="ledgerClose">—</div></div>
+      <div class="status" id="status4"></div>
+    </section>
+  </main>
+
+  <script>
+    // =============================
+    //  XRBitcoin V2 — Read-only app
+    //  Requirements honored:
+    //   - Use existing proxy URL (no networking change)
+    //   - Live best price from order books (book_offers)
+    //   - Professional rotating status messages; only show error on real failure
+    //   - Home button centered under brand
+    //   - Favicon/logo path /xrbc-nft.png
+    // =============================
+
+    const PROXY = 'https://xrbitcoincash-github-io.onrender.com'; // source of truth
+
+    // XRBitcoin IOU definition
+    const XRBITCOIN = {
+      currency: '5852626974636F696E0000000000000000000000', // HEX for "XRbitcoin"
+      issuer: 'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
+    };
+
+    // Small utils
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
+
+    // Rotating status messages
+    function spinner(targetId, msgs) {
+      let i = 0; const el = $(targetId);
+      el.textContent = msgs[0] || '';
+      const iv = setInterval(() => { i = (i + 1) % msgs.length; el.textContent = msgs[i]; }, 1500);
+      return () => { clearInterval(iv); };
+    }
+
+    async function rpc(body) {
+      const r = await fetch(PROXY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error('Proxy HTTP ' + r.status);
+      const j = await r.json();
+      if (j && j.error) throw new Error(j.error_message || j.error);
+      return j;
+    }
+
+    // Compute price in XRP/XRBitcoin from a book_offers item
+    function priceFromOffer(ofr, side) {
+      // side: 'ask' means taker_gets IOU (XRBitcoin), taker_pays XRP
+      //       price = taker_pays (XRP) / taker_gets (XRBitcoin)
+      // side: 'bid' means taker_gets XRP, taker_pays IOU
+      const tp = ofr.taker_pays; const tg = ofr.taker_gets;
+      if (side === 'ask') {
+        const xrp = Number(tp) / 1_000_000; // drops → XRP
+        const iou = Number(tg.value);
+        return xrp / iou;
+      } else {
+        const xrp = Number(tg) / 1_000_000;
+        const iou = Number(tp.value);
+        return xrp / iou;
+      }
+    }
+
+    function sizeFromOffer(ofr, side) {
+      // Size in XRBitcoin (IOU amount on that level)
+      if (side === 'ask') return Number(ofr.taker_gets.value);
+      return Number(ofr.taker_pays.value);
+    }
+
+    async function loadOrderBooks() {
+      const stop1 = spinner('status1', [
+        'Querying XRPL order books…',
+        'Finding best bid/ask…',
+        'Aggregating levels…',
+      ]);
+      const stop2 = spinner('status2', [
+        'Loading top 10 bids/asks…',
+        'Formatting rows…',
+        'Almost there…',
+      ]);
+
+      try {
+        // ASK side: sell XRBitcoin → get XRP
+        const asksReq = rpc({
+          method: 'book_offers',
+          params: [{
+            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh', // neutral taker
+            taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+            taker_pays: 'XRP',
+            limit: 25,
+          }]
+        });
+
+        // BID side: buy XRBitcoin → pay XRP
+        const bidsReq = rpc({
+          method: 'book_offers',
+          params: [{
+            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh',
+            taker_gets: 'XRP',
+            taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+            limit: 25,
+          }]
+        });
+
+        const [{ result: asksRes }, { result: bidsRes }] = await Promise.all([asksReq, bidsReq]);
+        const asks = (asksRes.offers || []).map(o => ({
+          px: priceFromOffer(o, 'ask'),
+          sz: sizeFromOffer(o, 'ask'),
+        })).sort((a,b) => a.px - b.px);
+        const bids = (bidsRes.offers || []).map(o => ({
+          px: priceFromOffer(o, 'bid'),
+          sz: sizeFromOffer(o, 'bid'),
+        })).sort((a,b) => b.px - a.px);
+
+        // Bests
+        const bestAsk = asks[0]?.px;
+        const bestBid = bids[0]?.px;
+        $('bestAsk').textContent = bestAsk ? fmt(bestAsk) : '—';
+        $('bestBid').textContent = bestBid ? fmt(bestBid) : '—';
+        const mid = (bestAsk && bestBid) ? (bestAsk + bestBid) / 2 : null;
+        $('midPx').textContent = mid ? fmt(mid) : '—';
+
+        // Tables (top 10)
+        const asksBody = $('asksTbl').querySelector('tbody');
+        const bidsBody = $('bidsTbl').querySelector('tbody');
+        asksBody.innerHTML = '';
+        bidsBody.innerHTML = '';
+        asks.slice(0,10).forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+          asksBody.appendChild(tr);
+        });
+        bids.slice(0,10).forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+          bidsBody.appendChild(tr);
+        });
+
+        stop1(); stop2();
+        $('status1').textContent = 'Live from XRPL order books.';
+        $('status2').textContent = `Asks: ${asks.length} • Bids: ${bids.length}`;
+      } catch (e) {
+        stop1(); stop2();
+        $('status1').textContent = 'Error loading price.';
+        $('status2').textContent = String(e.message || e);
+      }
+    }
+
+    async function loadHealth() {
+      const stop = spinner('status4', [
+        'Pinging ledger…', 'Reading close time…', 'Verifying response…'
+      ]);
+      try {
+        const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
+        $('ledgerIndex').textContent = result.ledger_index;
+        const ct = result.ledger.close_time_human || result.closed.ledger_time || '';
+        $('ledgerClose').textContent = ct || '—';
+        stop();
+        $('status4').textContent = 'XRPL is responding.';
+      } catch (e) {
+        stop();
+        $('status4').textContent = 'Health check failed: ' + (e.message || e);
+      }
+    }
+
+    function boot() {
+      loadOrderBooks();
+      loadHealth();
+      // refresh books every 20s
+      setInterval(loadOrderBooks, 20000);
+      // refresh health every 60s
+      setInterval(loadHealth, 60000);
+    }
+    addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>
+
+
