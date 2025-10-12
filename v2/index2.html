@@ -6,50 +6,21 @@
   <title>XRBitcoin — V2 (XRPL Read-Only)</title>
   <meta name="theme-color" content="#000428" />
   <meta name="description" content="XRBitcoin (XRPL) — live best price from order books, order book preview, and network status via proxy." />
-
   <style>
-    :root {
-      --gold-1: #ffd700;
-      --gold-2: #fff8dc;
-      --blue-1: #000428;
-      --blue-2: #004e92;
-      --ink: #eaf2ff;
-      --muted: #b8c7e0;
-      --card-bg: rgba(0, 0, 0, 0.55);
-      --glow: 0 0 24px rgba(255, 255, 255, 0.55);
-      --radius: 18px;
-      --gap: 16px;
-      --section: 80px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial;
-      color:var(--ink);
-      background: linear-gradient(135deg, var(--blue-1), var(--blue-2));
-      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-    }
+    :root{--gold-1:#ffd700;--gold-2:#fff8dc;--blue-1:#000428;--blue-2:#004e92;--ink:#eaf2ff;--muted:#b8c7e0;--card-bg:rgba(0,0,0,.55);--radius:18px;--gap:16px;--section:80px}
+    *{box-sizing:border-box}html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;color:var(--ink);background:linear-gradient(135deg,var(--blue-1),var(--blue-2))}
     header{padding:24px 16px 8px;text-align:center}
-    .brand{display:inline-flex;flex-direction:column;gap:4px;padding:10px 16px;border-radius:18px;background:rgba(255,255,255,0.06);box-shadow:0 6px 28px rgba(0,0,0,0.25);backdrop-filter:blur(6px)}
-    .brand h1{font-size:22px;line-height:1.1;margin:0}
-    .brand p{margin:2px 0 0;font-size:13px;color:var(--muted)}
-
+    .brand{display:inline-flex;flex-direction:column;gap:4px;padding:10px 16px;border-radius:18px;background:rgba(255,255,255,.06);box-shadow:0 6px 28px rgba(0,0,0,.25);backdrop-filter:blur(6px)}
+    .brand h1{font-size:22px;line-height:1.1;margin:0}.brand p{margin:2px 0 0;font-size:13px;color:var(--muted)}
     main{padding:24px 16px var(--section);max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:var(--gap)}
-    @media (min-width: 900px){ main{grid-template-columns:1.2fr 1fr} }
-
-    .card{background:var(--card-bg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,0.35)}
-    .card h2{margin:0 0 12px;font-size:18px;letter-spacing:.2px}
-    .muted{color:var(--muted);font-size:12px}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .big{font-size:32px;font-weight:800;letter-spacing:.5px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.12);font-size:14px;text-align:right}
-    th:first-child,td:first-child{text-align:left}
-
-    .status{min-height:20px;font-size:13px;color:var(--gold-2)}
+    @media (min-width:900px){main{grid-template-columns:1.2fr 1fr}}
+    .card{background:var(--card-bg);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+    .card h2{margin:0 0 12px;font-size:18px;letter-spacing:.2px}.muted{color:var(--muted);font-size:12px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px}.big{font-size:32px;font-weight:800;letter-spacing:.5px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,.12);font-size:14px;text-align:right}
+    th:first-child,td:first-child{text-align:left}.status{min-height:20px;font-size:13px;color:var(--gold-2)}
   </style>
 </head>
 <body>
@@ -71,18 +42,11 @@
   </div>
 
   <main>
-    <!-- Left Column: Price + Orderbook -->
     <section class="card" id="priceCard">
       <h2>Best Price <span class="muted">(XRBitcoin ↔ XRP)</span></h2>
       <div class="row">
-        <div>
-          <div class="muted">Best Ask (sell XRBitcoin for XRP)</div>
-          <div class="big mono" id="bestAsk">—</div>
-        </div>
-        <div>
-          <div class="muted">Best Bid (buy XRBitcoin with XRP)</div>
-          <div class="big mono" id="bestBid">—</div>
-        </div>
+        <div><div class="muted">Best Ask (sell XRBitcoin for XRP)</div><div class="big mono" id="bestAsk">—</div></div>
+        <div><div class="muted">Best Bid (buy XRBitcoin with XRP)</div><div class="big mono" id="bestBid">—</div></div>
       </div>
       <div class="muted" style="margin-top:8px">Mid (indicative): <span class="mono" id="midPx">—</span> XRP / XRBitcoin</div>
       <div class="status" id="status1"></div>
@@ -93,23 +57,16 @@
       <div class="row" style="gap:18px; align-items:flex-start">
         <div style="flex:1">
           <div class="muted" style="margin-bottom:6px">Asks (price in XRP per XRBitcoin)</div>
-          <table id="asksTbl">
-            <thead><tr><th>Price</th><th>Size</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <table id="asksTbl"><thead><tr><th>Price</th><th>Size</th></tr></thead><tbody></tbody></table>
         </div>
         <div style="flex:1">
           <div class="muted" style="margin-bottom:6px">Bids (price in XRP per XRBitcoin)</div>
-          <table id="bidsTbl">
-            <thead><tr><th>Price</th><th>Size</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <table id="bidsTbl"><thead><tr><th>Price</th><th>Size</th></tr></thead><tbody></tbody></table>
         </div>
       </div>
       <div class="status" id="status2"></div>
     </section>
 
-    <!-- Right Column: Network / Token Meta -->
     <section class="card" id="metaCard">
       <h2>Token • XRBitcoin</h2>
       <div class="mono" style="font-size:13px; line-height:1.5">
@@ -130,22 +87,17 @@
   </main>
 
   <script>
-    // XRBitcoin V2 — Read-only app
-
-    // Persisted proxy selection; default to the working Render URL
+    // Default to working Render proxy (persist override in localStorage)
     let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoincash-github-io.onrender.com';
 
-    // XRBitcoin IOU definition
     const XRBITCOIN = {
       currency: '5852626974636F696E0000000000000000000000',
       issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
     };
 
-    // Utils
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
 
-    // Spinner text rotator
     function spinner(targetId, msgs) {
       let i = 0; const el = $(targetId);
       el.textContent = msgs[0] || '';
@@ -153,7 +105,6 @@
       return () => clearInterval(iv);
     }
 
-    // Show active proxy in UI
     function renderActiveProxyNote() {
       const el = $('activeProxyNote');
       if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
@@ -162,7 +113,6 @@
       if (metaProxyLine) metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
     }
 
-    // Robust RPC with timeout + clearer errors
     async function rpc(body) {
       const ctrl = new AbortController();
       const tm = setTimeout(() => ctrl.abort(), 15000);
@@ -179,27 +129,22 @@
           throw new Error(`Proxy HTTP ${r.status} ${r.statusText}${text ? ' – ' + text : ''}`);
         }
         const j = await r.json();
-        if (j?.result?.status === 'error' || j?.result?.error) {
-          throw new Error(`XRPL error: ${j.result.error || j.result.status}`);
-        }
+        if (j?.result?.status === 'error' || j?.result?.error) throw new Error(`XRPL error: ${j.result.error || j.result.status}`);
         if (j?.error) throw new Error(`XRPL error: ${j.error}`);
         return j;
       } catch (err) {
         if (err?.name === 'AbortError') throw new Error('Timeout talking to proxy/XRPL (15s)');
         if (String(err).includes('Failed to fetch')) throw new Error('Network/CORS: browser could not reach the proxy URL');
         throw err;
-      } finally {
-        clearTimeout(tm);
-      }
+      } finally { clearTimeout(tm); }
     }
 
-    // Price helpers
     function priceFromOffer(ofr, side) {
-      const tp = ofr.taker_pays; 
+      const tp = ofr.taker_pays;
       const tg = ofr.taker_gets;
       if (side === 'ask') {
-        const xrp = Number(tp) / 1_000_000;   // drops -> XRP
-        const iou = Number(tg.value);         // XRBitcoin units
+        const xrp = Number(tp) / 1_000_000;   // drops → XRP
+        const iou = Number(tg.value);
         return xrp / iou;
       } else {
         const xrp = Number(tg) / 1_000_000;
@@ -217,12 +162,14 @@
       const stop2 = spinner('status2', ['Loading top 10 bids/asks…','Formatting rows…','Almost there…']);
 
       try {
+        // FIX: XRP must be an object {currency:'XRP'}; add ledger_index for consistency.
         const asksReq = rpc({
           method: 'book_offers',
           params: [{
-            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh',
+            ledger_index: 'validated',
+            // Sell XRBitcoin -> get XRP
             taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-            taker_pays: 'XRP',
+            taker_pays: { currency: 'XRP' },
             limit: 25
           }]
         });
@@ -230,8 +177,9 @@
         const bidsReq = rpc({
           method: 'book_offers',
           params: [{
-            taker: 'rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh',
-            taker_gets: 'XRP',
+            ledger_index: 'validated',
+            // Buy XRBitcoin -> pay XRP
+            taker_gets: { currency: 'XRP' },
             taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
             limit: 25
           }]
@@ -298,7 +246,6 @@
     function initProxySelector(){
       const sel = document.getElementById('proxySel');
       if (!sel) return;
-      // Set current selection
       for (let i=0;i<sel.options.length;i++) {
         if (sel.options[i].value === PROXY) { sel.selectedIndex = i; break; }
       }
