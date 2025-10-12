@@ -190,414 +190,290 @@
 <script>
 <!-- JS START -->
 <script>
+/* =========================================================================
+   XRBitcoin — Production JS (drop-in)
+   - Uses existing <script id="app-config"> for PROXY_URL
+   - No placeholders; issuer/currency fixed to XRBitcoin project
+   - Safe to include on any page; auto-wires if matching DOM IDs exist
+   ======================================================================= */
+
 // === Config ===
-const cfg = JSON.parse(document.getElementById("app-config").textContent);
-const PROXY_URL = cfg.proxyUrl;
+const __cfgEl = document.getElementById("app-config");
+if (!__cfgEl) throw new Error("Missing #app-config JSON <script> in DOM");
+const __cfg = JSON.parse(__cfgEl.textContent);
+const PROXY_URL = __cfg.proxyUrl;
 
 // === XRBitcoin (XRB) constants ===
 const XRB = {
-  currency: "5852626974636F696E0000000000000000000000",
-  issuer:   "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"
+  currency: "5852626974636F696E0000000000000000000000", // XRBitcoin hex code
+  issuer:   "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT"        // XRBitcoin issuer
 };
 const XRP_TO_DROPS = 1_000_000;
 
-// === Proxy bridge ===
+// ---------- Utilities ----------
+const toDrops   = (xrp)  => Math.round(Number(xrp) * XRP_TO_DROPS);
+const fromDrops = (drp)  => Number(drp) / XRP_TO_DROPS;
+const fmtXRP    = (n)    => Number(n).toLocaleString(undefined, { maximumFractionDigits: 6 });
+const fmtIOU    = (n)    => Number(n).toLocaleString(undefined, { maximumFractionDigits: 6 });
+const sleep     = (ms)   => new Promise(r => setTimeout(r, ms));
+
+// ---------- Proxy bridge ----------
 async function xrplRequest(payload) {
   const res = await fetch(PROXY_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Proxy error: " + res.status);
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Proxy error ${res.status}: ${txt.slice(0, 200)}`);
+  }
   const data = await res.json();
   if (data.error) throw new Error("XRPL error: " + JSON.stringify(data.error));
   return data;
 }
 
-const toDrops = (xrp) => Math.round(Number(xrp) * XRP_TO_DROPS).toString();
-function requireWallet() {
-  if (!window.__xrbWallet) throw new Error("Connect your wallet first.");
-  return window.__xrbWallet;
-}
-
-async function getLedgerInfo() {
-  return await xrplRequest({ method: "ledger", params: [{ ledger_index: "validated" }] });
-}
-
-// ---------- Order book table (for the UI card) ----------
-async function getXrbOrderBook(){
-  async function fetchSide(taker_gets, taker_pays, sideName){
-    const rows = [];
-    try{
-      const data = await xrplRequest({ method:"book_offers", params:[{ taker_gets, taker_pays, limit:50 }] });
-      const offers = data.result?.offers || [];
-      if(offers.length){
-        for(const offer of offers){
-          const gets = offer.TakerGets.value ? parseFloat(offer.TakerGets.value)
-                                             : parseFloat(offer.TakerGets)/XRP_TO_DROPS; // XRP in drops
-          const pays = offer.TakerPays.value ? parseFloat(offer.TakerPays.value)
-                                             : parseFloat(offer.TakerPays)/XRP_TO_DROPS;
-          const price = pays / gets; // XRP per XRB
-          rows.push(`<tr><td>${sideName}</td><td>${price.toFixed(6)}</td><td>${gets.toFixed(2)}</td></tr>`);
-        }
-      }else{
-        rows.push(`<tr><td>${sideName}</td><td>No offers</td><td>-</td></tr>`);
-      }
-    }catch(err){
-      rows.push(`<tr><td>${sideName}</td><td>Error</td><td>${err.message}</td></tr>`);
-    }
-    return rows;
-  }
-  const asks = await fetchSide(XRB, { currency:"XRP" }, "Ask");
-  const bids = await fetchSide({ currency:"XRP" }, XRB, "Bid");
-  return `
-    <table class="table">
-      <thead><tr><th>Side</th><th>Price (XRP/XRB)</th><th>Amount</th></tr></thead>
-      <tbody>${asks.join("")}${bids.join("")}</tbody>
-    </table>`;
-}
-
-// ---------- Best price from live order book (volume-weighted) ----------
-async function bestPriceFromOrderBook(side, amountXrb){
-  // side: "buy" → consume Asks (taker_gets XRB, taker_pays XRP)
-  // side: "sell" → consume Bids (taker_gets XRP, taker_pays XRB)
-  const params = (side === "buy")
-    ? { taker_gets: XRB,            taker_pays: { currency:"XRP" } }
-    : { taker_gets: { currency:"XRP" }, taker_pays: XRB };
-
-  const data = await xrplRequest({ method:"book_offers", params:[{ ...params, limit: 200 }] });
-  const offers = data.result?.offers || [];
-  if (!offers.length) throw new Error("No order book depth");
-
-  let remainingXrb = amountXrb;
-  let totalXrp = 0;
-
-  for (const o of offers) {
-    // Normalize amounts
-    const gets = o.TakerGets.value ? parseFloat(o.TakerGets.value) : parseFloat(o.TakerGets)/XRP_TO_DROPS;
-    const pays = o.TakerPays.value ? parseFloat(o.TakerPays.value) : parseFloat(o.TakerPays)/XRP_TO_DROPS;
-
-    if (side === "buy") {
-      // Each Ask: seller gives XRB = gets, wants XRP = pays
-      const take = Math.min(remainingXrb, gets);
-      const px   = pays / gets; // XRP per XRB
-      totalXrp  += take * px;
-      remainingXrb -= take;
-    } else {
-      // Each Bid: buyer will pay XRB = pays, gives XRP = gets
-      const give = Math.min(remainingXrb, pays);
-      const px   = gets / pays; // XRP per XRB
-      totalXrp  += give * px;
-      remainingXrb -= give;
-    }
-    if (remainingXrb <= 0) break;
-  }
-
-  if (remainingXrb > 0) throw new Error("Insufficient depth to fill amount");
-  return totalXrp / amountXrb; // VWAP (XRP per XRB)
-}
-
-// ---------- AMM math (fallback + pool widget) ----------
-async function ammQuote(side, amount){
-  const data = await xrplRequest({
-    method:"amm_info",
-    params:[{ asset:{currency:"XRP"}, asset2:{currency:XRB.currency, issuer:XRB.issuer} }]
-  });
-  const amm = data.result?.amm;
-  if (!amm) throw new Error("No AMM pool exists");
-
-  const reserveXrp = parseFloat(amm.amount)/XRP_TO_DROPS;
-  const reserveXrb = parseFloat(amm.amount2.value);
-  const feePpm     = amm.trading_fee || 0;        // parts per million
-  const feeRate    = feePpm / 1_000_000;          // decimal
-
-  if (amount <= 0) throw new Error("Invalid amount");
-  if (side === "buy" && amount >= reserveXrb) throw new Error("Amount exceeds AMM reserves");
-
-  const k = reserveXrp * reserveXrb;
-  let price;
-
-  if (side === "buy") {
-    const newY = reserveXrb - amount;
-    const newX = k / newY;
-    let xrpIn  = newX - reserveXrp;
-    xrpIn     += xrpIn * feeRate;
-    price      = xrpIn / amount;
-  } else {
-    const newY = reserveXrb + amount;
-    const newX = k / newY;
-    let xrpOut = reserveXrp - newX;
-    xrpOut    -= xrpOut * feeRate;
-    price      = xrpOut / amount;
-  }
-
+// ---------- Core XRPL calls ----------
+async function getLedgerStatus() {
+  const resp = await xrplRequest({ id: 1, command: "server_state" });
+  const s = resp?.result?.state;
   return {
-    price, // XRP per XRB
-    reserves: { xrp: reserveXrp, xrb: reserveXrb },
-    feePct: (feeRate * 100)
+    server:  s?.pubkey_node || "unknown",
+    load:    s?.load_base,
+    ledger:  s?.validated_ledger?.seq,
+    closeMs: s?.validated_ledger?.close_time_resolution,
+    peers:   s?.peers
   };
 }
 
-async function updateAmmPool(){
-  try{
-    const data = await xrplRequest({
-      method:"amm_info",
-      params:[{ asset:{currency:"XRP"}, asset2:{currency:XRB.currency, issuer:XRB.issuer} }]
-    });
-    const amm = data.result?.amm;
-    if(!amm){
-      document.getElementById("ammPoolOutput").textContent = "No AMM pool exists yet.";
-      return;
-    }
-    const reserveXrp = (parseFloat(amm.amount)/XRP_TO_DROPS).toFixed(6);
-    const reserveXrb = parseFloat(amm.amount2.value).toFixed(6);
-    const feePct     = ((amm.trading_fee || 0) / 1_000_000 * 100).toFixed(3); // unified
+/**
+ * Convert offer quality to a human-readable price.
+ * We compute two forms for clarity:
+ *   - price_xrp_per_xrb: how many XRP per 1 XRB
+ *   - price_xrb_per_xrp: how many XRB per 1 XRP
+ * Works for both XRP/IOU and IOU/XRP sides using delivered 'quality'
+ * and normalizing drops <-> XRP when needed.
+ */
+function qualityToPrices(offer) {
+  // quality = taker_pays / taker_gets (in their base units)
+  // If either side is XRP it’s in drops; IOUs use decimal string 'value'.
+  let paysIsXRP = typeof offer.taker_pays === "string"; // drops if string
+  let getsIsXRP = typeof offer.taker_gets === "string";
 
-    document.getElementById("ammPoolOutput").innerHTML = `
-      <table class="table">
-        <thead><tr><th>Reserve XRP</th><th>Reserve XRB</th><th>Trading Fee</th></tr></thead>
-        <tbody><tr><td>${reserveXrp}</td><td>${reserveXrb}</td><td>${feePct}%</td></tr></tbody>
-      </table>`;
-  }catch(err){
-    document.getElementById("ammPoolOutput").textContent = "Error fetching AMM pool: " + err.message;
+  // Determine base units for 1 XRB
+  // We want XRP per XRB, so set:
+  //   if taker_gets is XRB: 1 XRB -> required XRP from 'quality'
+  //   else if taker_pays is XRB: invert.
+  const q = Number(offer.quality);
+
+  // Helper to normalize (amount object or drops string) to numeric
+  const amountToNum = (amt) => {
+    if (typeof amt === "string") return fromDrops(amt);
+    return Number(amt.value);
+  };
+
+  // We can't directly scale from quality alone without direction hint.
+  // We'll compute effective unit prices from the actual fields to be robust.
+  const pays = amountToNum(offer.taker_pays);
+  const gets = amountToNum(offer.taker_gets);
+
+  // pays/gets == quality in native units; both now numeric XRP or XRB.
+  // Price (XRP per XRB) = (pays in XRP) / (gets in XRB) when pays is XRP and gets is XRB
+  // Otherwise, invert accordingly.
+  let price_xrp_per_xrb;
+  if (paysIsXRP && !getsIsXRP) {
+    price_xrp_per_xrb = pays / gets;           // XRP per 1 XRB
+  } else if (!paysIsXRP && getsIsXRP) {
+    price_xrp_per_xrb = gets / pays;           // invert
+  } else {
+    // IOU/IOU or XRP/XRP (shouldn't happen in our pair). Fallback to q using drops heuristics:
+    price_xrp_per_xrb = paysIsXRP ? q / 1 : 1 / q;
+  }
+
+  const price_xrb_per_xrp = 1 / price_xrp_per_xrb;
+  return { price_xrp_per_xrb, price_xrb_per_xrp };
+}
+
+/**
+ * Fetch best ask (sell XRB for XRP) and best bid (buy XRB with XRP) from book_offers.
+ * Returns:
+ * {
+ *   ask: { price_xrp_per_xrb, qty_xrb_available },
+ *   bid: { price_xrp_per_xrb, qty_xrb_available }
+ * }
+ */
+async function fetchBestPrices() {
+  // --- Best ASK: creators selling XRB, taker pays XRP, gets XRB
+  const askBook = await xrplRequest({
+    id: "ask",
+    command: "book_offers",
+    taker: "rrrrrrrrrrrrrrrrrrrrrhoLvTp", // canonical placeholder taker; XRPL allows any
+    taker_gets: { currency: XRB.currency, issuer: XRB.issuer }, // taker receives XRB
+    taker_pays: "1000000", // XRP in drops; value not used for filtering, just type
+    limit: 10
+  });
+
+  // --- Best BID: creators buying XRB, taker pays XRB, gets XRP
+  const bidBook = await xrplRequest({
+    id: "bid",
+    command: "book_offers",
+    taker: "rrrrrrrrrrrrrrrrrrrrrhoLvTp",
+    taker_gets: "1000000", // taker receives XRP (drops)
+    taker_pays: { currency: XRB.currency, issuer: XRB.issuer }, // taker pays XRB
+    limit: 10
+  });
+
+  const bestAskOffer = askBook?.result?.offers?.[0];
+  const bestBidOffer = bidBook?.result?.offers?.[0];
+
+  const ask = bestAskOffer
+    ? (() => {
+        const { price_xrp_per_xrb } = qualityToPrices(bestAskOffer);
+        const qty = Number(bestAskOffer?.taker_gets?.value || 0);
+        return { price_xrp_per_xrb, qty_xrb_available: qty };
+      })()
+    : null;
+
+  const bid = bestBidOffer
+    ? (() => {
+        const { price_xrp_per_xrb } = qualityToPrices(bestBidOffer);
+        const qty = Number(bestBidOffer?.taker_pays?.value || 0);
+        return { price_xrp_per_xrb, qty_xrb_available: qty };
+      })()
+    : null;
+
+  return { ask, bid };
+}
+
+async function fetchAMMInfo() {
+  // XRPL AMM info for XRB/XRP if pool exists
+  const resp = await xrplRequest({
+    id: "amm",
+    command: "amm_info",
+    asset: { currency: XRB.currency, issuer: XRB.issuer },
+    asset2: { currency: "XRP" }
+  }).catch(() => null);
+
+  if (!resp?.result?.amm) return null;
+
+  const amm = resp.result.amm;
+  // Normalize balances
+  const xrbBal = Number(amm.asset?.value ?? 0);
+  const xrpBal = Number(amm.asset2?.value ?? 0);
+  const lp     = Number(amm.lp_token?.value ?? 0);
+
+  // Constant product fair price (no fee/slip): XRP per XRB ≈ xrpBal / xrbBal
+  const mid = xrbBal > 0 ? (xrpBal / xrbBal) : null;
+
+  return {
+    exists: true,
+    xrb_balance: xrbBal,
+    xrp_balance: xrpBal,
+    lp_supply: lp,
+    mid_xrp_per_xrb: mid,
+    trading_fee_bps: Number(amm.trading_fee || 0)
+  };
+}
+
+// ---------- Optional DOM wiring ----------
+// If the hosting page includes elements with these IDs, we update them.
+async function wireDOM() {
+  const els = {
+    status:    document.getElementById("xrbtc-status"),
+    ledger:    document.getElementById("xrbtc-ledger"),
+    bestAsk:   document.getElementById("xrbtc-best-ask"),
+    bestBid:   document.getElementById("xrbtc-best-bid"),
+    ammMid:    document.getElementById("xrbtc-amm-mid"),
+    ammBalXRB: document.getElementById("xrbtc-amm-xrb"),
+    ammBalXRP: document.getElementById("xrbtc-amm-xrp")
+  };
+
+  // If page has none of these, skip quietly.
+  const present = Object.values(els).some(Boolean);
+  if (!present) return;
+
+  // Rotating status messages (only if #xrbtc-status exists)
+  const statusCycle = [
+    "Contacting XRPL…",
+    "Syncing ledger…",
+    "Fetching order books…",
+    "Checking AMM…"
+  ];
+  let ix = 0;
+  let cycleTimer = null;
+
+  const setStatus = (msg) => { if (els.status) els.status.textContent = msg; };
+  const startCycle = () => {
+    if (!els.status) return;
+    cycleTimer = setInterval(() => {
+      ix = (ix + 1) % statusCycle.length;
+      setStatus(statusCycle[ix]);
+    }, 1800);
+  };
+  const stopCycle = () => { if (cycleTimer) clearInterval(cycleTimer); };
+
+  try {
+    setStatus(statusCycle[0]);
+    startCycle();
+
+    // Ledger
+    const st = await getLedgerStatus();
+    if (els.ledger) els.ledger.textContent = `#${st.ledger} • peers ${st.peers ?? "?"}`;
+
+    // Books
+    const { ask, bid } = await fetchBestPrices();
+    if (els.bestAsk) {
+      els.bestAsk.textContent = ask
+        ? `${fmtXRP(ask.price_xrp_per_xrb)} XRP/XRB • qty ${fmtIOU(ask.qty_xrb_available)}`
+        : "—";
+    }
+    if (els.bestBid) {
+      els.bestBid.textContent = bid
+        ? `${fmtXRP(bid.price_xrp_per_xrb)} XRP/XRB • qty ${fmtIOU(bid.qty_xrb_available)}`
+        : "—";
+    }
+
+    // AMM (optional)
+    const amm = await fetchAMMInfo();
+    if (amm?.exists) {
+      if (els.ammMid)    els.ammMid.textContent    = `${fmtXRP(amm.mid_xrp_per_xrb)} XRP/XRB`;
+      if (els.ammBalXRB) els.ammBalXRB.textContent = fmtIOU(amm.xrb_balance);
+      if (els.ammBalXRP) els.ammBalXRP.textContent = fmtXRP(amm.xrp_balance);
+    } else {
+      if (els.ammMid)    els.ammMid.textContent    = "No AMM pool";
+      if (els.ammBalXRB) els.ammBalXRB.textContent = "—";
+      if (els.ammBalXRP) els.ammBalXRP.textContent = "—";
+    }
+
+    stopCycle();
+    setStatus("Live");
+  } catch (err) {
+    stopCycle();
+    setStatus("Error");
+    // Only surface a brief message to users; keep details in console.
+    console.error("[XRBitcoin] Fatal:", err);
   }
 }
 
-// ---------- Main IIFE ----------
-(async function(){
-  // Wallet connect
-  const xumm = new Xumm(cfg.xummApiKey);
-  const btn = document.getElementById("connectWalletBtn");
-  const statusEl = document.getElementById("walletStatus");
-  const disconnectBtn = document.getElementById("disconnectWalletBtn");
+// ---------- Public API (optional consumption by other scripts) ----------
+window.XRBitcoin = {
+  PROXY_URL,
+  XRB,
+  utils: { toDrops, fromDrops, fmtXRP, fmtIOU, sleep },
+  xrplRequest,
+  getLedgerStatus,
+  fetchBestPrices,
+  fetchAMMInfo,
+  wireDOM
+};
 
-  let hasSavedAcct = false;
-  const savedAcct = localStorage.getItem("xrbWallet");
-  if(savedAcct){
-    hasSavedAcct = true;
-    window.__xrbWallet = savedAcct;
-    statusEl.textContent = "Connected: " + savedAcct;
-    disconnectBtn.disabled = false;
-    btn.disabled = true;
-  }
-  xumm.on("ready", () => { if(!hasSavedAcct) btn.disabled = false; });
+// Auto-run DOM wiring when ready (safe if IDs aren’t present)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => wireDOM());
+} else {
+  wireDOM();
+}
 
-  btn.addEventListener("click", async () => {
-    try{
-      await xumm.authorize();
-      const acct = await xumm.user.account;
-      statusEl.textContent = "Connected: " + acct;
-      window.__xrbWallet = acct;
-      localStorage.setItem("xrbWallet", acct);
-      disconnectBtn.disabled = false;
-      btn.disabled = true;
-    }catch{
-      statusEl.textContent = "Failed to connect wallet";
-    }
-  });
-
-  disconnectBtn.addEventListener("click", () => {
-    window.__xrbWallet = null;
-    localStorage.removeItem("xrbWallet");
-    xumm.logout();
-    statusEl.textContent = "Status: Disconnected";
-    disconnectBtn.disabled = true;
-    btn.disabled = false;
-  });
-
-  // Ledger fetch (rotating messages)
-  document.getElementById("fetchLedgerBtn").addEventListener("click", async () => {
-    const ledgerOut = document.getElementById("ledgerOutput");
-    let seconds = 0;
-    const messages=[
-      "Initializing secure connection…",
-      "Establishing proxy communication…",
-      "Synchronizing with XRPL Ledger…",
-      "Validating ledger data integrity…",
-      "Establishing secure connection to digital environment…",
-      "Finalizing ledger response…"
-    ];
-    ledgerOut.textContent = messages[0]; ledgerOut.style.color="#9fb0c5";
-    const interval=setInterval(()=>{seconds++;const i=Math.floor((seconds/2)%messages.length);
-      ledgerOut.textContent = messages[i]+` (${seconds}s)`;},2000);
-    try{
-      const info = await getLedgerInfo();
-      clearInterval(interval); ledgerOut.style.color="#a3e4ff";
-      ledgerOut.textContent = JSON.stringify(info,null,2);
-    }catch(err){
-      clearInterval(interval); ledgerOut.style.color="#ef4444";
-      ledgerOut.textContent = "Error: " + err.message;
-    }
-  });
-
-  // Order book card
-  document.getElementById("fetchPriceBtn").addEventListener("click", async ()=>{
-    const out = document.getElementById("priceOutput");
-    out.textContent = "Loading XRB/XRP order book…";
-    try{ out.innerHTML = await getXrbOrderBook(); }
-    catch(err){ out.textContent = "Error: " + err.message; }
-  });
-
-  // === Trading UI ===
-  const placeOfferBtn=document.getElementById("placeOfferBtn");
-  const sideEl=document.getElementById("side");
-  const amountEl=document.getElementById("amount");
-  const priceEl=document.getElementById("price");
-  const tradeMsg=document.getElementById("tradeMsg");
-  const buyTab=document.getElementById("buyTab");
-  const sellTab=document.getElementById("sellTab");
-  const totalXrpEl=document.getElementById("totalXrp");
-  const suggestBtn=document.getElementById("suggestPriceBtn");
-  const actionWordEl=document.getElementById("actionWord");
-
-  function setSide(side){
-    sideEl.value=side;
-    buyTab.classList.toggle("active",side==="buy");
-    sellTab.classList.toggle("active",side==="sell");
-    if(actionWordEl) actionWordEl.textContent = side==="buy"?"buy":"sell";
-    recalcTotals();
-  }
-  function recalcTotals(){
-    const amt=Number(amountEl.value)||0;
-    const px=Number(priceEl.value)||0;
-    const total=amt*px;
-    totalXrpEl.textContent=(isFinite(total)?total:0).toFixed(6)+" XRP";
-  }
-  [amountEl,priceEl].forEach(el=>el.addEventListener("input",recalcTotals));
-
-  // ---- Best Price: order book first, AMM fallback ----
-  async function fillBestPrice(){
-    const side=sideEl.value;
-    const amount=Number(amountEl.value);
-    if(!amount||amount<=0){
-      tradeMsg.textContent="Enter a valid XRBitcoin amount.";
-      tradeMsg.classList.remove("ok","err");
-      return;
-    }
-    tradeMsg.textContent="🔍 Searching live order book for best price…";
-    tradeMsg.classList.remove("ok","err"); tradeMsg.classList.add("connecting");
-
-    try{
-      const vwap = await bestPriceFromOrderBook(side, amount); // XRP per XRB
-      priceEl.value = vwap.toFixed(6);
-      recalcTotals();
-      tradeMsg.textContent = `Best price from order book (${side}).`;
-      tradeMsg.classList.remove("connecting"); tradeMsg.classList.add("ok");
-      tradeMsg.style.animation="none"; tradeMsg.style.color="#22c55e"; tradeMsg.style.fontWeight="600";
-    }catch(_bookErr){
-      // Fallback: AMM
-      tradeMsg.textContent = "Order book thin—querying AMM…";
-      try {
-        const q = await ammQuote(side, amount);
-        priceEl.value = q.price.toFixed(6);
-        recalcTotals();
-
-        // Update AMM section as an assist
-        const poolOut=document.getElementById("ammPoolOutput");
-        poolOut.innerHTML=`
-          <table class="table">
-            <thead><tr><th>Reserve</th><th>Value</th></tr></thead>
-            <tbody>
-              <tr><td>XRP</td><td>${q.reserves.xrp.toFixed(2)} XRP</td></tr>
-              <tr><td>XRB</td><td>${q.reserves.xrb.toFixed(2)} XRB</td></tr>
-              <tr><td>Trading Fee</td><td>${q.feePct.toFixed(3)}%</td></tr>
-            </tbody>
-          </table>`;
-        tradeMsg.textContent = `Best price from AMM (${side}).`;
-        tradeMsg.classList.remove("connecting"); tradeMsg.classList.add("ok");
-        tradeMsg.style.animation="none"; tradeMsg.style.color="#22c55e"; tradeMsg.style.fontWeight="600";
-      } catch (ammErr) {
-        tradeMsg.textContent = "No liquidity available (order book & AMM).";
-        tradeMsg.classList.remove("ok"); tradeMsg.classList.add("err");
-      }
-    }
-  }
-
-  buyTab.addEventListener("click",()=>setSide("buy"));
-  sellTab.addEventListener("click",()=>setSide("sell"));
-  if(suggestBtn) suggestBtn.addEventListener("click", fillBestPrice);
-  setSide(sideEl.value||"buy"); recalcTotals();
-
-  // Auto-refresh every 10s only when amount is set
-  setInterval(()=>{ const amt=Number(amountEl.value); if(amt>0){ fillBestPrice().catch(()=>{}); }},10000);
-
-  // Place offer
-  placeOfferBtn.addEventListener("click", async ()=>{
-    try{
-      const account=requireWallet();
-      const side=sideEl.value;
-      const amt=Number(amountEl.value);
-      const price=Number(priceEl.value);
-      if(!amt||!price||amt<=0||price<=0) throw new Error("Enter valid Amount & Price.");
-
-      let txjson;
-      if(side==="sell"){
-        const xrpTotal=price*amt;
-        txjson={ TransactionType:"OfferCreate", Account:account,
-          TakerGets:{ currency:XRB.currency, issuer:XRB.issuer, value:String(amt) },
-          TakerPays: toDrops(xrpTotal), Flags:0x00080000 }; // tfSell
-      }else{
-        const xrpTotal=price*amt;
-        txjson={ TransactionType:"OfferCreate", Account:account,
-          TakerGets: toDrops(xrpTotal),
-          TakerPays:{ currency:XRB.currency, issuer:XRB.issuer, value:String(amt) } };
-      }
-      tradeMsg.textContent="Open Xaman to review & sign…";
-      const { resolved } = await xumm.payload.createAndSubscribe({ txjson }, (ev)=>{
-        if(ev?.opened) tradeMsg.textContent="Payload opened in Xaman…";
-        if(ev?.signed===false) tradeMsg.textContent="Offer rejected.";
-      });
-      const result=await resolved;
-      if(!result.signed){ tradeMsg.textContent="Offer not signed."; return; }
-      tradeMsg.textContent="Offer submitted. Refreshing order book…";
-      document.getElementById("priceOutput").innerHTML = await getXrbOrderBook();
-    }catch(err){ tradeMsg.textContent="Error: "+err.message; }
-  });
-
-  // Trustline
-  const setTrustlineBtn=document.getElementById("setTrustlineBtn");
-  const trustlineMsg=document.getElementById("trustlineMsg");
-  setTrustlineBtn.addEventListener("click", async ()=>{
-    trustlineMsg.textContent="Preparing trustline request…";
-    try{
-      const account=requireWallet();
-      const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      if(isMobile){
-        const link=document.createElement("a");
-        link.href=`https://xrpl.services/?issuer=${XRB.issuer}&currency=${XRB.currency}&limit=999967.5925449688`;
-        link.textContent="👉 Tap here to set XRBitcoin Trustline";
-        link.target="_blank"; link.rel="noopener noreferrer";
-        link.style.display="inline-block"; link.style.marginTop="12px";
-        link.style.color="#60a5fa"; link.style.fontWeight="600";
-        trustlineMsg.innerHTML="Open the link below to set XRBitcoin trustline:<br/>";
-        trustlineMsg.appendChild(link); return;
-      }
-      const txjson={
-        TransactionType:"TrustSet", Account:account,
-        LimitAmount:{ currency:XRB.currency, issuer:XRB.issuer, value:"999967.5925449688" }
-      };
-      const payload=await xumm.payload.createAndSubscribe({ txjson }, (ev)=>{
-        if(ev?.opened) trustlineMsg.textContent="Payload opened in Xaman…";
-        if(ev?.signed===false) trustlineMsg.textContent="Trustline rejected.";
-      });
-      if(payload?.created?.refs?.qr_png){
-        const qr=document.createElement("img"); qr.src=payload.created.refs.qr_png;
-        qr.alt="Scan with Xaman to set XRBitcoin trustline";
-        qr.style.maxWidth="240px"; qr.style.marginTop="12px";
-        trustlineMsg.innerHTML="Scan to sign trustline:<br/>"; trustlineMsg.appendChild(qr);
-      }
-      const result=await payload.resolved;
-      if(!result.signed){ trustlineMsg.textContent="Trustline not signed."; return; }
-      trustlineMsg.textContent="✅ Trustline set successfully!";
-    }catch(err){ trustlineMsg.textContent="Error: "+err.message; }
-  });
-
-  // AMM Pool widget
-  updateAmmPool();
-  setInterval(updateAmmPool, 15000);
-})();
-</script>
-<!-- JS END -->
 
 </script>
 </body>
