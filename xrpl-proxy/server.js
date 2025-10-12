@@ -22,18 +22,29 @@ const CORS_ORIGINS = [
 
 // ------------------ App & middleware -------------------
 const app = express();
+
+// helpful request log (shows origin for CORS debugging)
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.path} :: origin=${req.headers.origin || 'n/a'}`);
+  next();
+});
+
+// CORS must be configured BEFORE routes
 app.use(cors({
-  origin: function (origin, cb) {
+  origin: (origin, cb) => {
     // allow same-origin / curl (no origin header)
     if (!origin) return cb(null, true);
     if (CORS_ORIGINS.includes(origin)) return cb(null, true);
     return cb(new Error("Blocked by CORS: " + origin));
   },
-  methods: ["GET","POST","OPTIONS"],
+  methods: ["GET", "POST", "OPTIONS"],
   credentials: false
 }));
+
+// Handle CORS preflights explicitly
+app.options("*", cors());
+
 app.use(express.json({ limit: "1mb" }));
-app.use((req, _res, next) => { console.log(`[REQ] ${req.method} ${req.path}`); next(); });
 
 // ------------------ Helpers ----------------------------
 async function xrplRpc(body) {
@@ -42,9 +53,7 @@ async function xrplRpc(body) {
     timeout: 20000,
     validateStatus: () => true
   });
-  if (r.status < 200 || r.status >= 300) {
-    throw new Error(`XRPL HTTP ${r.status}`);
-  }
+  if (r.status < 200 || r.status >= 300) throw new Error(`XRPL HTTP ${r.status}`);
   return r.data;
 }
 
@@ -56,8 +65,7 @@ app.get("/healthz", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.post("/", async (req, res) => {
   try {
     const data = await xrplRpc(req.body);
-    // XRPL returns {result:...} or {error:...}
-    res.json(data);
+    res.json(data); // XRPL returns {result:...} or {error:...}
   } catch (err) {
     console.error("[proxy error]", err.message || err);
     res.status(502).json({ error: "Proxy request failed", detail: err.message || String(err) });
@@ -77,7 +85,10 @@ app.get("/api/xrpl/ledger", async (_req, res) => {
 
 app.get("/api/xrpl/account/:acct", async (req, res) => {
   try {
-    const data = await xrplRpc({ method: "account_info", params: [{ account: req.params.acct, ledger_index: "validated" }] });
+    const data = await xrplRpc({
+      method: "account_info",
+      params: [{ account: req.params.acct, ledger_index: "validated" }]
+    });
     res.json(data);
   } catch (err) {
     console.error("[account]", err.message || err);
