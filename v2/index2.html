@@ -139,7 +139,17 @@
     <div class="home-wrap">
       <a class="home-btn" href="https://xrbitcoincash.com/">Home</a>
     </div>
-  </header>
+ </header>
+
+  <!-- Proxy selector (explicit, no placeholders) -->
+  <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap">
+    <label class="muted" for="proxySel" style="align-self:center">Proxy:</label>
+    <select id="proxySel" class="mono" style="padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#eaf2ff">
+      <option value="https://xrbitcoin-github-io.onrender.com">xrbitcoin-github-io.onrender.com</option>
+      <option value="https://xrbitcoincash-github-io.onrender.com">xrbitcoincash-github-io.onrender.com</option>
+    </select>
+    <span class="muted" id="activeProxyNote">(active)</span>
+  </div>
 
   <main>
     <!-- Left Column: Price + Orderbook -->
@@ -200,23 +210,25 @@
     </section>
   </main>
 
-  <script>
+   <script>
     // =============================
     //  XRBitcoin V2 — Read-only app
-    //  Requirements honored:
-    //   - Use existing proxy URL (no networking change)
-    //   - Live best price from order books (book_offers)
-    //   - Professional rotating status messages; only show error on real failure
-    //   - Home button centered under brand
-    //   - Favicon/logo path /xrbc-nft.png
+    //  - Proxy selector (persisted)
+    //  - Live order books from XRPL via proxy
+    //  - Rotating status; only real errors shown
     // =============================
 
-    const PROXY = 'https://xrbitcoincash-github-io.onrender.com'; // source of truth
+    // Persisted proxy selection (no placeholders)
+    let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoin-github-io.onrender.com';
+    const PROXIES = [
+      'https://xrbitcoin-github-io.onrender.com',
+      'https://xrbitcoincash-github-io.onrender.com',
+    ];
 
     // XRBitcoin IOU definition
     const XRBITCOIN = {
       currency: '5852626974636F696E0000000000000000000000', // HEX for "XRbitcoin"
-      issuer: 'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
+      issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
     };
 
     // Small utils
@@ -229,6 +241,19 @@
       el.textContent = msgs[0] || '';
       const iv = setInterval(() => { i = (i + 1) % msgs.length; el.textContent = msgs[i]; }, 1500);
       return () => { clearInterval(iv); };
+    }
+
+    // Display the active proxy in the Meta card
+    function renderActiveProxyNote() {
+      const el = $('activeProxyNote');
+      if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
+      const metaProxy = document.querySelector('#metaCard .mono b')?.parentElement?.nextElementSibling;
+      // Update the "Proxy:" line in the meta card safely
+      const metaProxyLine = Array.from(document.querySelectorAll('#metaCard .mono div'))
+        .find(d => d.textContent.trim().startsWith('Proxy'));
+      if (metaProxyLine) {
+        metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
+      }
     }
 
     async function rpc(body) {
@@ -245,13 +270,11 @@
 
     // Compute price in XRP/XRBitcoin from a book_offers item
     function priceFromOffer(ofr, side) {
-      // side: 'ask' means taker_gets IOU (XRBitcoin), taker_pays XRP
-      //       price = taker_pays (XRP) / taker_gets (XRBitcoin)
-      // side: 'bid' means taker_gets XRP, taker_pays IOU
-      const tp = ofr.taker_pays; const tg = ofr.taker_gets;
+      const tp = ofr.taker_pays; 
+      const tg = ofr.taker_gets;
       if (side === 'ask') {
-        const xrp = Number(tp) / 1_000_000; // drops → XRP
-        const iou = Number(tg.value);
+        const xrp = Number(tp) / 1_000_000;    // drops → XRP
+        const iou = Number(tg.value);          // XRBitcoin units
         return xrp / iou;
       } else {
         const xrp = Number(tg) / 1_000_000;
@@ -259,7 +282,6 @@
         return xrp / iou;
       }
     }
-
     function sizeFromOffer(ofr, side) {
       // Size in XRBitcoin (IOU amount on that level)
       if (side === 'ask') return Number(ofr.taker_gets.value);
@@ -302,10 +324,12 @@
         });
 
         const [{ result: asksRes }, { result: bidsRes }] = await Promise.all([asksReq, bidsReq]);
+
         const asks = (asksRes.offers || []).map(o => ({
           px: priceFromOffer(o, 'ask'),
           sz: sizeFromOffer(o, 'ask'),
         })).sort((a,b) => a.px - b.px);
+
         const bids = (bidsRes.offers || []).map(o => ({
           px: priceFromOffer(o, 'bid'),
           sz: sizeFromOffer(o, 'bid'),
@@ -352,7 +376,7 @@
       try {
         const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
         $('ledgerIndex').textContent = result.ledger_index;
-        const ct = result.ledger.close_time_human || result.closed.ledger_time || '';
+        const ct = result.ledger.close_time_human || result.closed?.ledger_time || '';
         $('ledgerClose').textContent = ct || '—';
         stop();
         $('status4').textContent = 'XRPL is responding.';
@@ -362,7 +386,26 @@
       }
     }
 
+    function initProxySelector(){
+      const sel = document.getElementById('proxySel');
+      if (!sel) return;
+      // Set current selection
+      for (let i=0;i<sel.options.length;i++) {
+        if (sel.options[i].value === PROXY) { sel.selectedIndex = i; break; }
+      }
+      sel.addEventListener('change', () => {
+        PROXY = sel.value;
+        localStorage.setItem('xrbtc_proxy', PROXY);
+        renderActiveProxyNote();
+        // Refresh immediately on switch
+        loadOrderBooks();
+        loadHealth();
+      });
+      renderActiveProxyNote();
+    }
+
     function boot() {
+      initProxySelector();
       loadOrderBooks();
       loadHealth();
       // refresh books every 20s
@@ -372,6 +415,7 @@
     }
     addEventListener('DOMContentLoaded', boot);
   </script>
+
 </body>
 </html>
 
