@@ -87,186 +87,208 @@
   </main>
 
   <script>
-    // Default to working Render proxy (persist override in localStorage)
-    let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoincash-github-io.onrender.com';
+   // Default to working Render proxy (persist override in localStorage)
+let PROXY = localStorage.getItem('xrbtc_proxy') || 'https://xrbitcoincash-github-io.onrender.com';
 
-    const XRBITCOIN = {
-      currency: '5852626974636F696E0000000000000000000000',
-      issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
-    };
+const XRBITCOIN = {
+  currency: '5852626974636F696E0000000000000000000000',
+  issuer:   'rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT',
+};
 
-    const $ = (id) => document.getElementById(id);
-    const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
+// --- utils ---
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 8 });
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-    function spinner(targetId, msgs) {
-      let i = 0; const el = $(targetId);
-      el.textContent = msgs[0] || '';
-      const iv = setInterval(() => { i = (i + 1) % msgs.length; el.textContent = msgs[i]; }, 1500);
-      return () => clearInterval(iv);
+function spinner(targetId, msgs) {
+  let i = 0; const el = $(targetId);
+  el.textContent = msgs[0] || '';
+  const iv = setInterval(() => { i = (i + 1) % msgs.length; el.textContent = msgs[i]; }, 1500);
+  return () => clearInterval(iv);
+}
+
+function renderActiveProxyNote() {
+  const el = $('activeProxyNote');
+  if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
+  // Update the "Proxy:" line in the meta card
+  const metaProxyLine = Array.from(document.querySelectorAll('#metaCard .mono div'))
+    .find(d => d.textContent.trim().startsWith('Proxy'));
+  if (metaProxyLine) metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
+}
+
+// Robust RPC with timeout + clearer errors
+async function rpc(body) {
+  const ctrl = new AbortController();
+  const tm = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+      mode: 'cors'
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(()=> '');
+      throw new Error(`Proxy HTTP ${r.status} ${r.statusText}${text ? ' – ' + text : ''}`);
     }
+    const j = await r.json();
+    if (j?.result?.status === 'error' || j?.result?.error) throw new Error(`XRPL error: ${j.result.error || j.result.status}`);
+    if (j?.error) throw new Error(`XRPL error: ${j.error}`);
+    return j;
+  } catch (err) {
+    if (err?.name === 'AbortError') throw new Error('Timeout talking to proxy/XRPL (15s)');
+    if (String(err).includes('Failed to fetch')) throw new Error('Network/CORS: browser could not reach the proxy URL');
+    throw err;
+  } finally { clearTimeout(tm); }
+}
 
-    function renderActiveProxyNote() {
-      const el = $('activeProxyNote');
-      if (el) el.textContent = `(active: ${new URL(PROXY).host})`;
-      const metaProxyLine = Array.from(document.querySelectorAll('#metaCard .mono div'))
-        .find(d => d.textContent.trim().startsWith('Proxy'));
-      if (metaProxyLine) metaProxyLine.innerHTML = `<b>Proxy</b>: ${PROXY}`;
-    }
+// Offer helpers
+function priceFromOffer(ofr, side) {
+  const tp = ofr.taker_pays;
+  const tg = ofr.taker_gets;
+  if (side === 'ask') {
+    // ask: taker_gets = IOU, taker_pays = XRP (drops)
+    const xrp = Number(tp) / 1_000_000;
+    const iou = Number(tg.value);
+    return xrp / iou;
+  } else {
+    // bid: taker_gets = XRP (drops), taker_pays = IOU
+    const xrp = Number(tg) / 1_000_000;
+    const iou = Number(tp.value);
+    return xrp / iou;
+  }
+}
+function sizeFromOffer(ofr, side) {
+  // size displayed in XRBitcoin units
+  if (side === 'ask') return Number(ofr.taker_gets.value);
+  return Number(ofr.taker_pays.value);
+}
 
-    async function rpc(body) {
-      const ctrl = new AbortController();
-      const tm = setTimeout(() => ctrl.abort(), 15000);
-      try {
-        const r = await fetch(PROXY, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: ctrl.signal,
-          mode: 'cors'
-        });
-        if (!r.ok) {
-          const text = await r.text().catch(()=> '');
-          throw new Error(`Proxy HTTP ${r.status} ${r.statusText}${text ? ' – ' + text : ''}`);
-        }
-        const j = await r.json();
-        if (j?.result?.status === 'error' || j?.result?.error) throw new Error(`XRPL error: ${j.result.error || j.result.status}`);
-        if (j?.error) throw new Error(`XRPL error: ${j.error}`);
-        return j;
-      } catch (err) {
-        if (err?.name === 'AbortError') throw new Error('Timeout talking to proxy/XRPL (15s)');
-        if (String(err).includes('Failed to fetch')) throw new Error('Network/CORS: browser could not reach the proxy URL');
-        throw err;
-      } finally { clearTimeout(tm); }
-    }
+// ==== Cascading order-book loader ====
+async function loadOrderBooks() {
+  const stop1 = spinner('status1', ['Getting validated ledger…','Loading asks…','Loading bids…','Formatting rows…']);
+  const stop2 = spinner('status2', ['Preparing tables…','Almost there…']);
 
-    function priceFromOffer(ofr, side) {
-      const tp = ofr.taker_pays;
-      const tg = ofr.taker_gets;
-      if (side === 'ask') {
-        const xrp = Number(tp) / 1_000_000;   // drops → XRP
-        const iou = Number(tg.value);
-        return xrp / iou;
-      } else {
-        const xrp = Number(tg) / 1_000_000;
-        const iou = Number(tp.value);
-        return xrp / iou;
-      }
-    }
-    function sizeFromOffer(ofr, side) {
-      if (side === 'ask') return Number(ofr.taker_gets.value);
-      return Number(ofr.taker_pays.value);
-    }
+  try {
+    // 1) one validated ledger to keep snapshot consistent
+    const { result: led } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
+    const lidx = led.ledger_index;
 
-    async function loadOrderBooks() {
-      const stop1 = spinner('status1', ['Querying XRPL order books…','Finding best bid/ask…','Aggregating levels…']);
-      const stop2 = spinner('status2', ['Loading top 10 bids/asks…','Formatting rows…','Almost there…']);
+    // small pause to be gentle with upstream
+    await sleep(150);
 
-      try {
-        // FIX: XRP must be an object {currency:'XRP'}; add ledger_index for consistency.
-        const asksReq = rpc({
-          method: 'book_offers',
-          params: [{
-            ledger_index: 'validated',
-            // Sell XRBitcoin -> get XRP
-            taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-            taker_pays: { currency: 'XRP' },
-            limit: 25
-          }]
-        });
+    // 2) asks: sell XRBitcoin -> get XRP
+    const asksResp = await rpc({
+      method: 'book_offers',
+      params: [{
+        ledger_index: lidx,
+        taker_gets: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+        taker_pays: { currency: 'XRP' },
+        limit: 25
+      }]
+    });
 
-        const bidsReq = rpc({
-          method: 'book_offers',
-          params: [{
-            ledger_index: 'validated',
-            // Buy XRBitcoin -> pay XRP
-            taker_gets: { currency: 'XRP' },
-            taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
-            limit: 25
-          }]
-        });
+    await sleep(150);
 
-        const [{ result: asksRes }, { result: bidsRes }] = await Promise.all([asksReq, bidsReq]);
+    // 3) bids: buy XRBitcoin -> pay XRP
+    const bidsResp = await rpc({
+      method: 'book_offers',
+      params: [{
+        ledger_index: lidx,
+        taker_gets: { currency: 'XRP' },
+        taker_pays: { currency: XRBITCOIN.currency, issuer: XRBITCOIN.issuer },
+        limit: 25
+      }]
+    });
 
-        const asks = (asksRes.offers || []).map(o => ({
-          px: priceFromOffer(o, 'ask'),
-          sz: sizeFromOffer(o, 'ask'),
-        })).sort((a,b) => a.px - b.px);
+    // 4) render
+    const asksRes = asksResp.result || {};
+    const bidsRes = bidsResp.result || {};
 
-        const bids = (bidsRes.offers || []).map(o => ({
-          px: priceFromOffer(o, 'bid'),
-          sz: sizeFromOffer(o, 'bid'),
-        })).sort((a,b) => b.px - a.px);
+    const asks = (asksRes.offers || []).map(o => ({
+      px: priceFromOffer(o, 'ask'),
+      sz: sizeFromOffer(o, 'ask'),
+    })).sort((a,b) => a.px - b.px);
 
-        const bestAsk = asks[0]?.px;
-        const bestBid = bids[0]?.px;
-        $('bestAsk').textContent = bestAsk ? fmt(bestAsk) : '—';
-        $('bestBid').textContent = bestBid ? fmt(bestBid) : '—';
-        const mid = (bestAsk && bestBid) ? (bestAsk + bestBid) / 2 : null;
-        $('midPx').textContent = mid ? fmt(mid) : '—';
+    const bids = (bidsRes.offers || []).map(o => ({
+      px: priceFromOffer(o, 'bid'),
+      sz: sizeFromOffer(o, 'bid'),
+    })).sort((a,b) => b.px - a.px);
 
-        const asksBody = $('asksTbl').querySelector('tbody');
-        const bidsBody = $('bidsTbl').querySelector('tbody');
-        asksBody.innerHTML = ''; bidsBody.innerHTML = '';
-        asks.slice(0,10).forEach(r => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
-          asksBody.appendChild(tr);
-        });
-        bids.slice(0,10).forEach(r => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
-          bidsBody.appendChild(tr);
-        });
+    const bestAsk = asks[0]?.px;
+    const bestBid = bids[0]?.px;
 
-        stop1(); stop2();
-        $('status1').textContent = 'Live from XRPL order books.';
-        $('status2').textContent = `Asks: ${asks.length} • Bids: ${bids.length}`;
-      } catch (e) {
-        stop1(); stop2();
-        $('status1').textContent = 'Error loading price.';
-        $('status2').textContent = String(e.message || e);
-      }
-    }
+    $('bestAsk').textContent = bestAsk ? fmt(bestAsk) : '—';
+    $('bestBid').textContent = bestBid ? fmt(bestBid) : '—';
+    const mid = (bestAsk && bestBid) ? (bestAsk + bestBid) / 2 : null;
+    $('midPx').textContent = mid ? fmt(mid) : '—';
 
-    async function loadHealth() {
-      const stop = spinner('status4', ['Pinging ledger…','Reading close time…','Verifying response…']);
-      try {
-        const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
-        $('ledgerIndex').textContent = result.ledger_index ?? '—';
-        const ct = result.ledger?.close_time_human || result.closed?.ledger_time || '';
-        $('ledgerClose').textContent = ct || '—';
-        stop();
-        $('status4').textContent = 'XRPL is responding.';
-      } catch (e) {
-        stop();
-        $('status4').textContent = 'Health check failed: ' + (e.message || e);
-      }
-    }
+    const asksBody = $('asksTbl').querySelector('tbody');
+    const bidsBody = $('bidsTbl').querySelector('tbody');
+    asksBody.innerHTML = ''; bidsBody.innerHTML = '';
 
-    function initProxySelector(){
-      const sel = document.getElementById('proxySel');
-      if (!sel) return;
-      for (let i=0;i<sel.options.length;i++) {
-        if (sel.options[i].value === PROXY) { sel.selectedIndex = i; break; }
-      }
-      sel.addEventListener('change', () => {
-        PROXY = sel.value;
-        localStorage.setItem('xrbtc_proxy', PROXY);
-        renderActiveProxyNote();
-        loadOrderBooks();
-        loadHealth();
-      });
-      renderActiveProxyNote();
-    }
+    asks.slice(0,10).forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+      asksBody.appendChild(tr);
+    });
+    bids.slice(0,10).forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="mono">${fmt(r.px)}</td><td class="mono">${fmt(r.sz)}</td>`;
+      bidsBody.appendChild(tr);
+    });
 
-    function boot() {
-      initProxySelector();
-      loadOrderBooks();
-      loadHealth();
-      setInterval(loadOrderBooks, 20000);
-      setInterval(loadHealth, 60000);
-    }
-    addEventListener('DOMContentLoaded', boot);
+    stop1(); stop2();
+    $('status1').textContent = 'Live from XRPL order books.';
+    $('status2').textContent = `Asks: ${asks.length} • Bids: ${bids.length}`;
+  } catch (e) {
+    stop1(); stop2();
+    $('status1').textContent = 'Error loading price.';
+    $('status2').textContent = String(e.message || e);
+  }
+}
+
+async function loadHealth() {
+  const stop = spinner('status4', ['Pinging ledger…','Reading close time…','Verifying response…']);
+  try {
+    const { result } = await rpc({ method: 'ledger', params: [{ ledger_index: 'validated' }] });
+    $('ledgerIndex').textContent = result.ledger_index ?? '—';
+    const ct = result.ledger?.close_time_human || result.closed?.ledger_time || '';
+    $('ledgerClose').textContent = ct || '—';
+    stop();
+    $('status4').textContent = 'XRPL is responding.';
+  } catch (e) {
+    stop();
+    $('status4').textContent = 'Health check failed: ' + (e.message || e);
+  }
+}
+
+function initProxySelector(){
+  const sel = document.getElementById('proxySel');
+  if (!sel) return;
+  for (let i=0;i<sel.options.length;i++) {
+    if (sel.options[i].value === PROXY) { sel.selectedIndex = i; break; }
+  }
+  sel.addEventListener('change', () => {
+    PROXY = sel.value;
+    localStorage.setItem('xrbtc_proxy', PROXY);
+    renderActiveProxyNote();
+    loadOrderBooks();
+    loadHealth();
+  });
+  renderActiveProxyNote();
+}
+
+function boot() {
+  initProxySelector();
+  loadOrderBooks();
+  loadHealth();
+  setInterval(loadOrderBooks, 20000);
+  setInterval(loadHealth, 60000);
+}
+addEventListener('DOMContentLoaded', boot);
+
   </script>
 </body>
 </html>
