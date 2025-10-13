@@ -1,0 +1,41 @@
+{
+  "$schema": "https://xrbitcoincash.com/ai/schemas/universal-ai.v1.json",
+  "schema_version": "1.0.0",
+  "project": {
+    "name": "XRBitcoin",
+    "ticker": "XRBitcoin",
+    "type": "issued-currency",
+    "network": "XRPL Mainnet",
+    "issuer": "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT",
+    "currency_hex": "5852626974636F696E0000000000000000000000",
+    "supply": { "total": "999967.5925449688", "fixed": true, "issuer_blackholed": true }
+  },
+  "branding": {
+    "home": "https://xrbitcoincash.com/XRBitcoin/",
+    "logo": "https://xrbitcoincash.com/xrbitcoin-nft.png"
+  },
+  "endpoints": {
+    "health": "https://xrbitcoincash-github-io.onrender.com/healthz",
+    "xrpl_proxy": "https://xrbitcoincash-github-io.onrender.com",
+    "diag_html": "https://xrbitcoincash.com/XRBitcoin/diag.html"
+  },
+  "xrpl_access": {
+    "mode": "read-only",
+    "allowed_methods": ["server_state", "ledger", "account_info", "book_offers", "amm_info"],
+    "notes": [
+      "Use POST JSON-RPC to xrpl_proxy with {method, params}.",
+      "Quotes must be computed live from order books and/or AMM."
+    ]
+  },
+  "security": {
+    "auth": "none",
+    "rate_limit_hint_rps": 3,
+    "privacy": "No user data collected by this manifest.",
+    "security_txt": "https://xrbitcoincash.com/.well-known/security.txt"
+  },
+  "provenance": {
+    "on_ledger_source": "XRPL Clio/Mainnet",
+    "off_ledger_source": "Static site (GitHub Pages) + Render proxy"
+  },
+  "updated": "2025-10-13"
+}
