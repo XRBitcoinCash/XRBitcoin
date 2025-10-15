@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XRBitcoin · AI Transparency & Safety Center</title>
+  <meta name="description" content="Deterministic AI-auditable checks for XRBitcoin using live XRPL data and site manifest." />
+  <link rel="canonical" href="https://xrbitcoincash.com/ai/ai-auditor.html" />
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial; background:#0a0f14; color:#e6edf3; }
+    .wrap { max-width:980px; margin:0 auto; padding:28px 16px 56px; }
+    h1 { font-size:28px; margin:6px 0 10px; }
+    .muted { opacity:.85; }
+    .grid { display:grid; grid-template-columns:1fr; gap:14px; margin-top:18px; }
+    .card { border:1px solid #1f2a36; background:#0f1620; border-radius:14px; padding:14px; }
+    pre { background:#0f1620; border:1px solid #1f2a36; padding:12px; border-radius:12px; overflow:auto; }
+    .pill { font-size:12px; padding:4px 8px; border:1px solid #2b3a4b; border-radius:999px; }
+    .ok { color:#9ee493; }
+    .err { color:#ff8a8a; }
+    a { color:#9ecbff; }
+  </style>
+
+  <!-- Config BEFORE scripts (no placeholders) -->
+  <script id="app-config" type="application/json">
+  {
+    "proxyUrl": "https://xrbitcoincash-github-io.onrender.com",
+    "issuer":   "rGQaHbQHCsTLQtboQPwUBasXjLvk8uDbpT",
+    "currency": "5852626974636F696E0000000000000000000000",
+    "universalAiPath": "/universal-ai.json",
+    "tomlPath": "/.well-known/xrp-ledger.toml"
+  }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <h1>AI Transparency & Safety Center — XRBitcoin</h1>
+      <span class="pill" id="status">Idle</span>
+    </div>
+    <p class="muted">Read-only verifier for agents. Pulls live XRPL data via your proxy and local manifests for deterministic, AI-friendly verdicts.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Verdict</h3>
+        <pre id="verdict">—</pre>
+      </div>
+
+      <div class="card">
+        <h3>Checks</h3>
+        <pre id="checks">—</pre>
+      </div>
+
+      <div class="card">
+        <h3>Sources</h3>
+        <ul class="muted">
+          <li><a href="/" target="_blank">Site root</a></li>
+          <li><a href="/universal-ai.json" target="_blank">/universal-ai.json</a></li>
+          <li><a href="/.well-known/xrp-ledger.toml" target="_blank">/.well-known/xrp-ledger.toml</a></li>
+          <li><a href="/XRBitcoin/Trade.html" target="_blank">/XRBitcoin/Trade.html</a></li>
+          <li><a href="/XRBitcoin/diag.html" target="_blank">/XRBitcoin/diag.html</a></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Raw — server_state</h3>
+        <pre id="raw-state">—</pre>
+      </div>
+
+      <div class="card">
+        <h3>Raw — book_offers (XRBitcoin/XRP)</h3>
+        <pre id="raw-book">—</pre>
+      </div>
+
+      <div class="card">
+        <h3>Raw — universal-ai.json</h3>
+        <pre id="raw-ua">—</pre>
+      </div>
+
+      <div class="card">
+        <h3>Raw — xrp-ledger.toml</h3>
+        <pre id="raw-toml">—</pre>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:18px;">
+      Home: <a href="https://xrbitcoincash.com/">https://xrbitcoincash.com/</a>
+    </p>
+  </div>
+
+  <script>
+    // XRBitcoin — AI Transparency & Safety Center (single-file)
+
+    // === Config ===
+    const cfg = JSON.parse(document.getElementById("app-config").textContent);
+    const PROXY_URL = cfg.proxyUrl;
+    const XRB = { currency: cfg.currency, issuer: cfg.issuer };
+    const UA_PATH = cfg.universalAiPath;
+    const TOML_PATH = cfg.tomlPath;
+    const XRP_TO_DROPS = 1_000_000;
+
+    // === Proxy helper ===
+    async function xrplRequest(payload) {
+      const res = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Proxy error: " + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error("XRPL error: " + JSON.stringify(data.error));
+      return data;
+    }
+
+    // === Deterministic checks ===
+    async function checkServerState() {
+      const r = await xrplRequest({ method: "server_state", params: [] });
+      const s = r.result.state || {};
+      const validated = s.validated_ledger || {};
+      const age = Number(validated.age ?? 9999);
+      const peers = Number(s.peers ?? 0);
+      return {
+        ok: age <= 10 && peers >= 5,
+        details: { age, peers, server_state: s.server_state || "unknown" },
+        weight: 3,
+        id: "server_state_fresh_peers"
+      };
+    }
+
+    async function fetchOrderBook() {
+      const base = { currency: XRB.currency, issuer: XRB.issuer };
+      const xrp  = { currency: "XRP" };
+      const bids = await xrplRequest({ method: "book_offers", params: [{ taker_gets: base, taker_pays: xrp, limit: 10 }] });
+      const asks = await xrplRequest({ method: "book_offers", params: [{ taker_gets: xrp, taker_pays: base, limit: 10 }] });
+
+      const norm = (offers, side) => (offers.result.offers || []).map(o => {
+        if (side === "bid") {
+          const paysXRP = Number(o.TakerPays) / XRP_TO_DROPS;
+          const getsXRB = Number(o.TakerGets.value);
+          return { price: paysXRP / getsXRB, base: getsXRB, quote: paysXRP };
+        } else {
+          const paysXRB = Number(o.TakerPays.value);
+          const getsXRP = Number(o.TakerGets) / XRP_TO_DROPS;
+          return { price: getsXRP / paysXRB, base: paysXRB, quote: getsXRP };
+        }
+      });
+
+      return { bids: norm(bids, "bid"), asks: norm(asks, "ask"), raw: { bids, asks } };
+    }
+
+    async function checkOrderBookPresence() {
+      const ob = await fetchOrderBook();
+      const hasEitherSide = (ob.bids.length > 0) || (ob.asks.length > 0);
+      const mid = (ob.bids.length && ob.asks.length)
+        ? (Number(ob.bids[0].price) + Number(ob.asks[0].price)) / 2
+        : null;
+
+      return {
+        ok: hasEitherSide,
+        details: { bids: ob.bids.length, asks: ob.asks.length, mid },
+        weight: 2,
+        id: "order_book_present",
+        _raw: ob.raw
+      };
+    }
+
+    async function fetchJSON(path) {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) throw new Error("Fetch error " + res.status + " for " + path);
+      return res.json();
+    }
+    async function fetchText(path) {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) throw new Error("Fetch error " + res.status + " for " + path);
+      return res.text();
+    }
+
+    async function checkUniversalAI() {
+      const ua = await fetchJSON(UA_PATH);
+      const issuerMatches = ua?.project?.issuer === XRB.issuer;
+      const currencyMatches = ua?.project?.currency_hex === XRB.currency;
+      return {
+        ok: issuerMatches && currencyMatches,
+        details: {
+          issuer_in_ua: ua?.project?.issuer || null,
+          currency_in_ua: ua?.project?.currency_hex || null
+        },
+        weight: 2,
+        id: "universal_ai_matches_config",
+        _raw: ua
+      };
+    }
+
+    async function checkTomlPresence() {
+      const txt = await fetchText(TOML_PATH);
+      const hasCurrenciesBlock = /\\[CURRENCIES\\]/i.test(txt) || /\\[\\s*CURRENCIES\\s*\\]/i.test(txt);
+      return {
+        ok: txt.length > 0,
+        details: { bytes: txt.length, hasCurrenciesBlock },
+        weight: 1,
+        id: "toml_accessible",
+        _raw: txt
+      };
+    }
+
+    // === Verdict composer ===
+    function composeVerdict(checks) {
+      const score = checks.reduce((sum, c) => sum + (c.ok ? c.weight : 0), 0);
+      const max   = checks.reduce((sum, c) => sum + c.weight, 0);
+      const pct   = Math.round((score / max) * 100);
+
+      let grade = "caution";
+      if (pct >= 85) grade = "safe";
+      else if (pct >= 60) grade = "review";
+
+      return {
+        verdict: grade,
+        score_pct: pct,
+        rationale: checks.map(c => ({ id: c.id, ok: c.ok, details: c.details }))
+      };
+    }
+
+    // === UI glue ===
+    async function main() {
+      const els = {
+        status:  document.getElementById("status"),
+        verdict: document.getElementById("verdict"),
+        checks:  document.getElementById("checks"),
+        rawState:document.getElementById("raw-state"),
+        rawBook: document.getElementById("raw-book"),
+        rawUA:   document.getElementById("raw-ua"),
+        rawTOML: document.getElementById("raw-toml")
+      };
+
+      try {
+        els.status.textContent = "Running checks…";
+        const [state, ob, ua, toml] = await Promise.all([
+          checkServerState(),
+          checkOrderBookPresence(),
+          checkUniversalAI(),
+          checkTomlPresence()
+        ]);
+
+        const verdict = composeVerdict([state, ob, ua, toml]);
+
+        els.verdict.textContent = JSON.stringify(verdict, null, 2);
+        els.checks.textContent  = JSON.stringify({ checks: [state, ob, ua, toml] }, null, 2);
+
+        els.rawState.textContent = JSON.stringify(state.details, null, 2);
+        els.rawBook.textContent  = JSON.stringify({ bids: ob.details?.bids, asks: ob.details?.asks, mid: ob.details?.mid }, null, 2);
+        els.rawUA.textContent    = JSON.stringify(ua._raw ?? null, null, 2);
+        els.rawTOML.textContent  = (toml._raw ?? "").slice(0, 5000);
+
+        els.status.textContent = "Complete";
+        els.status.classList.add("ok");
+      } catch (e) {
+        document.getElementById("status").textContent = "Error";
+        document.getElementById("status").classList.add("err");
+        document.getElementById("verdict").textContent = JSON.stringify({ verdict: "error", reason: e.message }, null, 2);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", main);
+  </script>
+</body>
+</html>
